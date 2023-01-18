@@ -1,16 +1,12 @@
 # web-app mem-cache
 
 
-# Pre-requisite
-
-Please ensure postgres database is running at localhost:5432 with username=admin and password with 12345
+## Prerequisite
 
 
 ## Tutorial
 
 ### Development
-
-#### Run without Docker
 
 1. (Optional) Install virtual environment.
 
@@ -23,6 +19,7 @@ Please ensure postgres database is running at localhost:5432 with username=admin
     ```console
     source .venv/bin/activate
     ```
+    if wanna quit, use deactivate
 
 3. Install dependencies.
 
