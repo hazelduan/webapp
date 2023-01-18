@@ -1,5 +1,4 @@
-# webapp
-Assignment 1 for 1779
+# webapp Assignment 1 for 1779
 
 ##tutorial
 
