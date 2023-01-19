@@ -2,6 +2,7 @@
 from flask import render_template, url_for, request
 from app import webapp, memcache
 from flask import json
+import os
 
 
 @webapp.route('/')
@@ -41,4 +42,14 @@ def put():
     )
 
     return response
+
+@webapp.route('/UploadImage', methods=['POST'])
+def UploadImage():
+    image = request.files['image']
+
+    base_path = os.path.dirname(__file__)    # current file path
+    upload_path = os.path.join(base_path, 'static/images', image.filename)  # save file to path
+
+    image.save(upload_path)
+    return "OK"
 

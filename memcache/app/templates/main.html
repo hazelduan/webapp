@@ -19,6 +19,10 @@
             <input type="submit" value="put" />
         </form>
 
-
+        <form action="{{ url_for('UploadImage')}}" enctype='multipart/form-data' method="post">
+            <input type="file" name="image" />
+            <input type="submit" value="upload image">
+        </form>
+        <img src="https://helloflask.com/totoro.gif">
     <body>    
 </html>
