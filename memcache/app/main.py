@@ -43,10 +43,10 @@ def put():
 
     return response
 
-@webapp.route('/UploadImage', methods=['POST'])
+@webapp.route('/api/upload', methods=['POST'])
 def UploadImage():
-    image_key = request.form['image_key']
-    image = request.files['image']
+    image_key = request.form['key']
+    image = request.files['file']
 
     base_path = os.path.dirname(__file__)    # current file path
     save_path = os.path.join(base_path, 'static/images', image.filename)  # image save path
@@ -60,11 +60,19 @@ def UploadImage():
     # Save the image_key and image path in database
     ##
     ##
+    resp = {
+        "success" : "true",
+        "key" : image_key
+    }
+    response = webapp.response_class(
+        response=json.dumps(resp),
+        status=200,
+        mimetype='application/json'
+    )
 
-    flash("Image Upload Success!")
-    return redirect(url_for('main'))
+    return response
 
-@webapp.route('/ImageLookup', methods=['POST'])
+@webapp.route('/image_lookup', methods=['POST'])
 def ImageLookup():
     image_key = request.form['image_key']
 
@@ -79,13 +87,13 @@ def ImageLookup():
     else:
         return "Image not found"
 
-@webapp.route('/KeysDisplay', methods=['GET'])
+@webapp.route('/api/list_keys', methods=['POST'])
 def KeysDisplay():
     ## Show all the available keys in database
     return render_template('display_keys.html')
 
 
-@webapp.route('/DeleteAllKeys', methods=['GET'])
+@webapp.route('/api/delete_all', methods=['POST'])
 def DeleteAllKeys():
     
     ## Delete from local file system
@@ -96,6 +104,38 @@ def DeleteAllKeys():
 
     ## Delete from memcache
     memcache.clear()
-    flash('Delete all the data successful!')
 
-    return redirect(url_for('main'))
+    resp = {"success" : "true"}
+    response = webapp.response_class(
+        response=json.dumps(resp),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+
+@webapp.route('/memcache_option', methods=['GET', 'POST'])
+def MemcacheOption():
+    if request.method == 'POST':
+        capacity = request.form['capacity']
+        policy = request.form['policy']
+        mem_size = capacity
+        replace_policy = policy
+        ## should be update to database
+        ##
+        ## 
+    else:
+        mem_size = 10       ## should be retrieved from database
+        replace_policy = "Random"
+    return render_template('memcache_option.html', 
+                            memcache=memcache,
+                            mem_size=mem_size,
+                            replace_policy=replace_policy
+    )
+
+@webapp.route('/cache_clear', methods=['POST'])
+def CacheClear():
+    memcache.clear()
+    flash("Cache clear success!")
+    return redirect(url_for('MemcacheOption'))
+
