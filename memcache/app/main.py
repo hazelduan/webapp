@@ -1,5 +1,5 @@
 
-from flask import render_template, url_for, request
+from flask import render_template, url_for, request, flash, redirect
 from app import webapp, memcache
 from flask import json
 import os
@@ -45,11 +45,57 @@ def put():
 
 @webapp.route('/UploadImage', methods=['POST'])
 def UploadImage():
+    image_key = request.form['image_key']
     image = request.files['image']
 
     base_path = os.path.dirname(__file__)    # current file path
-    upload_path = os.path.join(base_path, 'static/images', image.filename)  # save file to path
+    save_path = os.path.join(base_path, 'static/images', image.filename)  # image save path
+    image_path = os.path.join('static/images', image.filename)
 
-    image.save(upload_path)
-    return "OK"
+    image.save(save_path)                  # save the image in local file system
 
+    # Save the image_key and image path in memcache
+    memcache[image_key] = image_path
+
+    # Save the image_key and image path in database
+    ##
+    ##
+
+    flash("Image Upload Success!")
+    return redirect(url_for('main'))
+
+@webapp.route('/ImageLookup', methods=['POST'])
+def ImageLookup():
+    image_key = request.form['image_key']
+
+    if image_key in memcache:
+        image_path = memcache[image_key]
+        return render_template("display_image.html", image_path=image_path, image_key=image_key)
+    # '''Interact with database
+    # elif image_key in db:
+    #    image_path = db[image_key]
+    #    return render_template("display_image.html", image_path=image_path, image_key=image_key)
+    # '''
+    else:
+        return "Image not found"
+
+@webapp.route('/KeysDisplay', methods=['GET'])
+def KeysDisplay():
+    ## Show all the available keys in database
+    return render_template('display_keys.html')
+
+
+@webapp.route('/DeleteAllKeys', methods=['GET'])
+def DeleteAllKeys():
+    
+    ## Delete from local file system
+    base_path = os.path.dirname(__file__)
+    for image_path in memcache.values():                ## Keys should be from database, for now we use memcache
+        save_path = os.path.join(base_path, image_path)
+        os.remove(save_path)
+
+    ## Delete from memcache
+    memcache.clear()
+    flash('Delete all the data successful!')
+
+    return redirect(url_for('main'))

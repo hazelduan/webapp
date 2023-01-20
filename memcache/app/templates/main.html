@@ -1,11 +1,14 @@
 <!DOCTYPE html>
+{% for message in get_flashed_messages() %}
+    <div class="alert">{{ message }}</div>
+{% endfor %}
 <head>
     <title>Very simple memcache</title>
 </head>
 <html>
     <body>
 
-        <form action="{{ url_for('get')}}" method="post">
+        <!-- <form action="{{ url_for('get')}}" method="post">
             <label>key:</label>
             <input type="text" name="key" />
             <input type="submit" value="get" />
@@ -17,12 +20,27 @@
             <label>value:</label>
             <input type="text" name="value" />
             <input type="submit" value="put" />
-        </form>
+        </form> 
+        
+        -->
 
         <form action="{{ url_for('UploadImage')}}" enctype='multipart/form-data' method="post">
+            <label>key:</label>
+            <input type="text" name="image_key" />
             <input type="file" name="image" />
             <input type="submit" value="upload image">
         </form>
+
+        <form action="{{ url_for('ImageLookup')}}" method="post">
+            <label>lookup key:</label>
+            <input type="text" name="image_key" />
+            <input type="submit" value="lookup image" />
+        </form>
+
+        <form action="{{ url_for('KeysDisplay')}}">
+            <button>Display Keys</button>
+        </form>
+
         <img src="https://helloflask.com/totoro.gif">
     <body>    
 </html>
