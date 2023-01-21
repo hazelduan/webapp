@@ -4,7 +4,6 @@ from app import webapp, memcache
 from flask import json
 import os
 
-
 @webapp.route('/')
 def main():
     return render_template("main.html")
