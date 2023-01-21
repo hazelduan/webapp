@@ -32,6 +32,8 @@
 
     ```console
     FLASK_APP=run.py
-    DB_HOST=localhost:<host number> flask --debug run --port <port number>
+    ```
+    ```console
+    DB_HOST=localhost:hostnumber flask --debug run --port <portnumber>
     ```
     Usually, port number is 5000
