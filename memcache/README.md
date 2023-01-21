@@ -31,5 +31,7 @@
 4. Start Flask app
 
     ```console
-    DB_HOST=localhost:5432 flask --debug run --port 8080
+    FLASK_APP=run.py
+    DB_HOST=localhost:<host number> flask --debug run --port <port number>
     ```
+    Usually, port number is 5000
