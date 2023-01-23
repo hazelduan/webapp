@@ -1,34 +1,30 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
 
-<head>
-    <title>Memcache Options</title>
-</head>
+{% block title %}Memcache options{% endblock %}
 
-<html>
-    <body>
-            <h2>Show all the keys in memcache</h2>
-            <input type="button" onclick="f1();" value="show">
-            <p>{{memcache|length}} keys</p>
-            <ul id="tab" style="display:none">
-                {% for keys in memcache.keys() %}
-                <li>{{keys}}</li>
-                {% endfor%}
-            </ul>
+{% block content %}
+    <h2>Show all the keys in memcache.</h2>
+    <input type="button" onclick="f1();" value="show">
+    <p>{{memcache|length}} keys</p>
+    <ul id="tab" style="display:none">
+        {% for keys in memcache.keys() %}
+        <li>{{keys}}</li>
+        {% endfor%}
+    </ul>
 
-        <form action="{{url_for('MemcacheOption')}}" method='post'>
-            <h2>Configure parameters of memcache</h2>
-            <label>Capacity (MB) : {{mem_size}}</label>
-            <input type="text" name="capacity" />
-            <label>Replacement Policy: {{replace_policy}}</label>
-            <input type="text" name="policy" />
-            <input type="submit" value="upload" />
-        </form>
+    <form action="{{url_for('MemcacheOption')}}" method='post'>
+        <h2>Configure parameters of memcache</h2>
+        <label>Capacity (MB) : {{mem_size}}</label>
+        <input type="text" name="capacity" />
+        <label>Replacement Policy: {{replace_policy}}</label>
+        <input type="text" name="policy" />
+        <input type="submit" value="upload" />
+    </form>
 
-        <form action="{{url_for('CacheClear')}}" method="post">
-            <input type="submit" value="Cache clear" />
-        </form>
-    <body>    
-</html>
+    <form action="{{url_for('CacheClear')}}" method="post">
+        <input type="submit" value="Cache clear" />
+    </form>
+{% endblock %}
 
 <script type="text/javascript">
     function f1(){
