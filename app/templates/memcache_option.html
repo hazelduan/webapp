@@ -14,10 +14,18 @@
 
     <form action="{{url_for('MemcacheOption')}}" method='post'>
         <h2>Configure parameters of memcache</h2>
-        <label>Capacity (MB) : {{mem_size}}</label>
-        <input type="text" name="capacity" />
-        <label>Replacement Policy: {{replace_policy}}</label>
-        <input type="text" name="policy" />
+        <label>Capacity (MB) : </label>
+        0
+        <input type="range" min="0" max="{{mem_size}}" name="capacity" />
+        {{mem_size}}
+        <br>
+        <br>
+        <label for="policy">Replacement Policy: {{replace_policy}}</label>
+        <select name="policy" id="policy">
+            <option value="random">Random</option>
+            <option value="LRU">Less Recently Used</option>
+        </select>
+          <br><br>
         <input type="submit" value="upload" />
     </form>
 
