@@ -3,21 +3,6 @@
 {% block title %}Index{% endblock %}
 
 {% block content %}
-    <!-- <form action="{{ url_for('get')}}" method="post">
-        <label>key:</label>
-        <input type="text" name="key" />
-        <input type="submit" value="get" />
-    </form>
-
-    <form action="{{ url_for('put')}}" method="post">
-        <label>key:</label>
-        <input type="text" name="key" />
-        <label>value:</label>
-        <input type="text" name="value" />
-        <input type="submit" value="put" />
-    </form> 
-    
-    -->
   <div>
     <form action="{{ url_for('UploadImage')}}" enctype='multipart/form-data' method="post">
         <label>key:</label>

@@ -8,39 +8,6 @@ import os
 def main():
     return render_template("main.html")
 
-@webapp.route('/get',methods=['POST'])
-def get():
-    key = request.form.get('key')
-
-    if key in memcache:
-        value = memcache[key]
-        response = webapp.response_class(
-            response=json.dumps(value),
-            status=200,
-            mimetype='application/json'
-        )
-    else:
-        response = webapp.response_class(
-            response=json.dumps("Unknown key"),
-            status=400,
-            mimetype='application/json'
-        )
-
-    return response
-
-@webapp.route('/put',methods=['POST'])
-def put():
-    key = request.form.get('key')
-    value = request.form.get('value')
-    memcache[key] = value
-
-    response = webapp.response_class(
-        response=json.dumps("OK"),
-        status=200,
-        mimetype='application/json'
-    )
-
-    return response
 
 @webapp.route('/api/upload', methods=['POST'])
 def UploadImage():
@@ -48,8 +15,21 @@ def UploadImage():
     image = request.files['file']
 
     base_path = os.path.dirname(__file__)    # current file path
-    save_path = os.path.join(base_path, 'static/images', image.filename)  # image save path
+    save_path = os.path.join(base_path, 'static/images')
+    if not os.path.exists(save_path):        # if dirs do not exist, create one
+        os.makedirs(save_path)
+
+    save_path = os.path.join(save_path, image.filename)  # image save path
     image_path = os.path.join('static/images', image.filename)
+
+    if image_key in memcache.keys():
+        old_image_path = memcache[image_key]
+        old_save_path = os.path.join(base_path, old_image_path)
+        os.remove(old_save_path)
+
+        memcache.pop(image_key)
+    ##if image_key in database:
+    #     ## delete key in database
 
     image.save(save_path)                  # save the image in local file system
 
