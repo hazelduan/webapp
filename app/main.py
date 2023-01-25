@@ -3,6 +3,7 @@ from flask import render_template, url_for, request, flash, redirect
 from app import webapp, memcache
 from flask import json
 import os
+from app.database_config import db, Images
 
 @webapp.route('/')
 def main():
@@ -37,8 +38,10 @@ def UploadImage():
     memcache[image_key] = image_path
 
     # Save the image_key and image path in database
-    ##
-    ##
+    db_image = Images(image_key=image_key, image=image_path)
+    db.session.add(db_image)
+    db.session.commit()
+
     resp = {
         "success" : "true",
         "key" : image_key
