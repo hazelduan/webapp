@@ -1,1 +1,1 @@
-password = "Uoteceyyds2021@@"
+password = 'linkaize1234'

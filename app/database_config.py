@@ -11,9 +11,9 @@ db_name = database_credential.db_name
 
 # Add Database
 webapp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}/{}'.format(db_user, db_password, db_host, db_name)
-
+# webapp.config['SQLALCHEMY_DATABASE_URI'] = 'mysql:///' + os.path.dirname(__file__) + '/data.db'
 # Secret Key
-webapp.config['SECRET_KEY'] = "a"
+# webapp.config['SECRET_KEY'] = "a"
 
 # Initialize the Database
 db = SQLAlchemy(webapp)
