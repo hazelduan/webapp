@@ -23,25 +23,29 @@ def UploadImage():
     save_path = os.path.join(save_path, image.filename)  # image save path
     image_path = os.path.join('static/images', image.filename)
 
+
     if image_key in memcache.keys():
-        old_image_path = memcache[image_key]
-        old_save_path = os.path.join(base_path, old_image_path)
-        os.remove(old_save_path)
-
-        memcache.pop(image_key)
-    ##if image_key in database:
-    #     ## delete key in database
-
-    image.save(save_path)                  # save the image in local file system
+        memcache.pop(image_key)                         # invalidate the key in memcache
 
     # Save the image_key and image path in memcache
     memcache[image_key] = image_path
 
-    # Save the image_key and image path in database
-    db_image = Images(image_key=image_key, image=image_path)
-    db.session.add(db_image)
-    db.session.commit()
 
+    ##if image_key in database:
+    #     ## update key in database
+    db_image = Images.query.filter_by(image_key=image_key).first()
+    if db_image != None:
+        old_save_path = os.path.join(base_path, db_image.image)
+        os.remove(old_save_path)                        # delete the old image
+        db_image.image = image_path
+        db.session.commit()
+    # Save the image_key and image path in database
+    else:
+        db_image = Images(image_key=image_key, image=image_path)
+        db.session.add(db_image)
+        db.session.commit()
+
+    image.save(save_path)                  # save the image in local file system
     resp = {
         "success" : "true",
         "key" : image_key
@@ -61,18 +65,21 @@ def ImageLookup():
     if image_key in memcache:
         image_path = memcache[image_key]
         return render_template("display_image.html", image_path=image_path, image_key=image_key)
-    # '''Interact with database
-    # elif image_key in db:
-    #    image_path = db[image_key]
-    #    return render_template("display_image.html", image_path=image_path, image_key=image_key)
-    # '''
     else:
+        ## Interact with database
+        db_image = Images.query.filter_by(image_key=image_key).first()
+        if db_image != None:
+            image_path = db_image.image
+            return render_template("display_image.html", image_path=image_path, image_key=image_key)
+
         return "Image not found"
+
 
 @webapp.route('/api/list_keys', methods=['POST'])
 def KeysDisplay():
     ## Show all the available keys in database
-    return render_template('display_keys.html')
+    db_images = Images.query.all()
+    return render_template('display_keys.html', db_images=db_images)
 
 
 @webapp.route('/api/delete_all', methods=['POST'])
@@ -80,9 +87,13 @@ def DeleteAllKeys():
     
     ## Delete from local file system
     base_path = os.path.dirname(__file__)
-    for image_path in memcache.values():                ## Keys should be from database, for now we use memcache
-        save_path = os.path.join(base_path, image_path)
+    db_images = Images.query.all()
+    for db_image in db_images:                ## Keys should be from database, for now we use memcache
+        save_path = os.path.join(base_path, db_image.image)
         os.remove(save_path)
+        ## Delete from database 
+        db.session.delete(db_image)
+    db.session.commit()
 
     ## Delete from memcache
     memcache.clear()

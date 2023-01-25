@@ -4,7 +4,7 @@ except ImportError:
     raise ImportError('Create a password.py file store the password of the database')
 
 db_user = 'root'
-db_password = "Uoteceyyds2021@@"
+db_password = password.password
 db_host = 'localhost'
 db_name = 'images'
 
