@@ -22,3 +22,16 @@ class Images(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     image_key = db.Column(db.String(50))
     image = db.Column(db.String(50))
+
+class MemcacheConfig(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    policy = db.Column(db.String(50))
+    memsize = db.Column(db.String(10))
+
+# # Initialize memcache config
+# init_memconfig = MemcacheConfig.query.first()
+
+# if init_memconfig == None:
+#     init_memconfig = MemcacheConfig(policy='Random', memsize='10')
+#     db.session.add(init_memconfig)
+#     db.session.commit()

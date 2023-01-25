@@ -3,10 +3,18 @@ from flask import render_template, url_for, request, flash, redirect
 from app import webapp, memcache
 from flask import json
 import os
-from app.database_config import db, Images
+from app.database_config import db, Images, MemcacheConfig
 
 @webapp.route('/')
 def main():
+    # Initialize memcache config
+    init_memconfig = MemcacheConfig.query.first()
+
+    if init_memconfig == None:              # when the database is created initially
+        init_memconfig = MemcacheConfig(policy='Random', memsize='10')
+        db.session.add(init_memconfig)
+        db.session.commit()
+    
     return render_template("main.html")
 
 
@@ -109,17 +117,20 @@ def DeleteAllKeys():
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
+    mem_config = MemcacheConfig.query.first()
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
         mem_size = capacity
         replace_policy = policy
-        ## should be update to database
-        ##
-        ## 
+        
+        mem_config.memsize = capacity
+        mem_config.policy = policy
+        db.session.commit()
     else:
-        mem_size = 10       ## should be retrieved from database
-        replace_policy = "Random"
+        mem_size = mem_config.memsize       ## should be retrieved from database
+        replace_policy = mem_config.policy
+    
     return render_template('memcache_option.html', 
                             memcache=memcache,
                             mem_size=mem_size,
