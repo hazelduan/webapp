@@ -1,8 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-from app import webapp
-from flask import render_template, url_for, request
-from app import database_credential
+from frontend.app import webapp
+from database import database_credential
 import os
 db_user = database_credential.db_user
 db_password = database_credential.db_password
