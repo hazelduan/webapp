@@ -28,10 +28,3 @@ class MemcacheConfig(db.Model):
     policy = db.Column(db.String(50))
     memsize = db.Column(db.String(10))
 
-# # Initialize memcache config
-# init_memconfig = MemcacheConfig.query.first()
-
-# if init_memconfig == None:
-#     init_memconfig = MemcacheConfig(policy='Random', memsize='10')
-#     db.session.add(init_memconfig)
-#     db.session.commit()
