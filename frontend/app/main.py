@@ -6,17 +6,17 @@ import os
 import sys
 sys.path.append('..')
 sys.path.append('..')
-from database.database_config import db, Images, MemcacheConfig
+from app import db, Images, MemcacheConfig
 
 @webapp.route('/')
 def main():
-    # # Initialize memcache config
-    # init_memconfig = MemcacheConfig.query.first()
+    # Initialize memcache config
+    init_memconfig = MemcacheConfig.query.first()
 
-    # if init_memconfig == None:              # when the database is created initially
-    #     init_memconfig = MemcacheConfig(policy='Random', memsize='10')
-    #     db.session.add(init_memconfig)
-    #     db.session.commit()
+    if init_memconfig == None:              # when the database is created initially
+        init_memconfig = MemcacheConfig(policy='Random', memsize='10')
+        db.session.add(init_memconfig)
+        db.session.commit()
     
     return render_template("main.html")
 
