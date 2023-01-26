@@ -1,5 +1,5 @@
 try:
-    from app import password
+    from database import password
 except ImportError:
     raise ImportError('Create a password.py file store the password of the database')
 

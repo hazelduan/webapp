@@ -10,7 +10,6 @@ memcache = {}
 webapp.config['SECRET_KEY'] = 'dev' 
 
 
-
 from app import main
 
 

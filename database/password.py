@@ -1,0 +1,1 @@
+password = 'linkaize1234'
