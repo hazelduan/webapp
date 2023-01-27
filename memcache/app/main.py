@@ -14,6 +14,10 @@ def main():
         init_memconfig = MemcacheConfig(policy='Random', memsize='10')
         db.session.add(init_memconfig)
         db.session.commit()
+
+    memsize = init_memconfig.memsize
+    policy = init_memconfig.policy
+    memcache.set_config(cache_len=int(memsize), policy=policy)
     
     html = '''
         <!DOCTYPE html>
@@ -70,6 +74,8 @@ def MemcacheOption():
         mem_config.memsize = capacity
         mem_config.policy = policy
         db.session.commit()
+
+        memcache.set_config(cache_len=int(capacity), policy=policy)
     
     return {'capacity': mem_config.memsize, 'policy': mem_config.policy, 'memcache':memcache}
 
@@ -78,6 +84,14 @@ def CacheClear():
     memcache.clear()
 
     return {'success' : 'true'}
+
+
+@memapp.route('/key_invalidate', methods=['GET'])
+def InvalidateKey():
+    image_key = request.form['image_key']
+    if image_key in memcache.keys():
+        memcache.pop(image_key)
+
 
 @memapp.route('/display_keys', methods=['GET'])
 def DisplayKeys():

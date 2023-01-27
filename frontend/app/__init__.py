@@ -6,11 +6,10 @@ sys.path.append('..')
 sys.path.append('..')
 from database import database_credential
 
-global memcache
 webapp = Flask(__name__)
 
 
-memcache = {}
+
 webapp.config['SECRET_KEY'] = 'dev' 
 
 
