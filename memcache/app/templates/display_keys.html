@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+            <title>Display Keys</title>
+        </head>
+        <body>
+            {% for keys in memcache.keys() %}
+            <li>{{keys}}</li>
+            {% endfor %}
+        </body>
+    </html>

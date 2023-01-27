@@ -1,44 +1,86 @@
 
 from flask import render_template, url_for, request
-from app import webapp, memcache
+from app import memapp, memcache
 from flask import json
 
+from app import db, MemcacheConfig
 
-@webapp.route('/')
+@memapp.route('/')
 def main():
-    return render_template("main.html")
+    # Initialize memcache config
+    init_memconfig = MemcacheConfig.query.first()
 
-@webapp.route('/get',methods=['POST'])
-def get():
-    key = request.form.get('key')
+    if init_memconfig == None:              # when the database is created initially
+        init_memconfig = MemcacheConfig(policy='Random', memsize='10')
+        db.session.add(init_memconfig)
+        db.session.commit()
+    
+    html = '''
+        <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>memcache index</title>
+                </head>
+                <body>
+                    <h1><i>memcache index</i></h1>
+                    <form action='/display_keys' method='get'>
+                        <input type='submit' value='display keys'>
+                    </form>
+                </body>
+            </html>
+        '''
+    return html
 
-    if key in memcache:
-        value = memcache[key]
-        response = webapp.response_class(
-            response=json.dumps(value),
-            status=200,
-            mimetype='application/json'
-        )
-    else:
-        response = webapp.response_class(
-            response=json.dumps("Unknown key"),
-            status=400,
-            mimetype='application/json'
-        )
 
-    return response
-
-@webapp.route('/put',methods=['POST'])
+@memapp.route('/put',methods=['GET'])
 def put():
-    key = request.form.get('key')
-    value = request.form.get('value')
-    memcache[key] = value
+    image_key = request.form.get('image_key')
+    image_path = request.form.get('image_path')
 
-    response = webapp.response_class(
-        response=json.dumps("OK"),
-        status=200,
-        mimetype='application/json'
-    )
+    if image_key in memcache.keys():
+        memcache.pop(image_key)                         # invalidate the key in memcache
+    
+    memcache[image_key] = image_path
 
+    response = {
+        "success" : "true",
+        "key" : image_key
+    }
     return response
+
+@memapp.route('/get',methods=['GET'])
+def get():
+    image_key = request.form.get('image_key')
+
+    if image_key in memcache:
+        image_path = memcache[image_key]
+        return {'image_path': image_path}
+    
+    return {'image_path': 'not found'}
+
+
+@memapp.route('/memcache_option',methods=['GET'])
+def MemcacheOption():
+    mem_config = MemcacheConfig.query.first()
+
+    capacity = request.form['capacity']
+    policy = request.form['policy']
+    method = request.form['method']
+    if method == 'post':
+        mem_config.memsize = capacity
+        mem_config.policy = policy
+        db.session.commit()
+    
+    return {'capacity': mem_config.memsize, 'policy': mem_config.policy, 'memcache':memcache}
+
+@memapp.route('/cache_clear',methods=['GET'])
+def CacheClear():
+    memcache.clear()
+
+    return {'success' : 'true'}
+
+@memapp.route('/display_keys', methods=['GET'])
+def DisplayKeys():
+    return render_template('display_keys.html', memcache=memcache)
+
 
