@@ -75,6 +75,8 @@ def ImageLookup():
         db_image = Images.query.filter_by(image_key=image_key).first()
         if db_image != None:
             image_path = db_image.image
+            # put the key into memcache
+            requests.get(url + '/put', data={'image_key': image_key, 'image_path':image_path})
             return render_template("display_image.html", image_path=image_path, image_key=image_key)
 
         return "Image not found"
@@ -130,13 +132,13 @@ def MemcacheOption():
     memcache = jsonResponse['memcache']
     return render_template('memcache_option.html', 
                             memcache=memcache,
-                            mem_size=mem_size,
                             replace_policy=replace_policy
     )
 
 @webapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
-    # memcache.clear()
-    flash("Cache clear success!")
-    return redirect(url_for('MemcacheOption'))
+    url = "http://127.0.0.1:5001"
+    response = requests.get(url + '/cache_clear')
+    jsonResponse = response.json()
+    return {'success' : jsonResponse['success']}
 
