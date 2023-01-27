@@ -1,22 +1,13 @@
 
 from flask import render_template, url_for, request, flash, redirect
-from app import webapp, memcache
+from app import webapp
 from flask import json
+import requests
 import os
-import sys
-sys.path.append('..')
-sys.path.append('..')
-from app import db, Images, MemcacheConfig
+from app import db, Images
 
 @webapp.route('/')
 def main():
-    # Initialize memcache config
-    init_memconfig = MemcacheConfig.query.first()
-
-    if init_memconfig == None:              # when the database is created initially
-        init_memconfig = MemcacheConfig(policy='Random', memsize='10')
-        db.session.add(init_memconfig)
-        db.session.commit()
     
     return render_template("main.html")
 
@@ -35,13 +26,6 @@ def UploadImage():
     image_path = os.path.join('static/images', image.filename)
 
 
-    if image_key in memcache.keys():
-        memcache.pop(image_key)                         # invalidate the key in memcache
-
-    # Save the image_key and image path in memcache
-    memcache[image_key] = image_path
-
-
     ##if image_key in database:
     #     ## update key in database
     db_image = Images.query.filter_by(image_key=image_key).first()
@@ -57,24 +41,34 @@ def UploadImage():
         db.session.commit()
 
     image.save(save_path)                  # save the image in local file system
-    resp = {
-        "success" : "true",
-        "key" : image_key
-    }
+
+
+
+    url = "http://127.0.0.1:5001"
+    response = requests.get(url + "/put", data={'image_key': image_key, 'image_path': image_path})
+    jsonResponse = response.json()
+    answer = jsonResponse['success']
+
+    
     response = webapp.response_class(
-        response=json.dumps(resp),
-        status=200,
-        mimetype='application/json'
-    )
+            response=json.dumps('success {}'.format(answer)),
+            status=200,
+            mimetype='application/json'
+        )
 
     return response
+
 
 @webapp.route('/image_lookup', methods=['POST'])
 def ImageLookup():
     image_key = request.form['image_key']
 
-    if image_key in memcache:
-        image_path = memcache[image_key]
+    url = "http://127.0.0.1:5001"
+    response = requests.get(url + "/get", data={'image_key': image_key})
+    jsonResponse = response.json()
+    image_path = jsonResponse['image_path']
+    
+    if image_path != 'not found':
         return render_template("display_image.html", image_path=image_path, image_key=image_key)
     else:
         ## Interact with database
@@ -107,33 +101,33 @@ def DeleteAllKeys():
     db.session.commit()
 
     ## Delete from memcache
-    memcache.clear()
+    url = "http://127.0.0.1:5001"
+
+    response = requests.get(url + '/cache_clear')
 
     resp = {"success" : "true"}
-    response = webapp.response_class(
-        response=json.dumps(resp),
-        status=200,
-        mimetype='application/json'
-    )
-    return response
+
+
+    return resp
 
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
-    mem_config = MemcacheConfig.query.first()
+    url = "http://127.0.0.1:5001"
+    
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
-        mem_size = capacity
-        replace_policy = policy
+        response = requests.get(url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
+        jsonResponse = response.json()
         
-        mem_config.memsize = capacity
-        mem_config.policy = policy
-        db.session.commit()
     else:
-        mem_size = mem_config.memsize       ## should be retrieved from database
-        replace_policy = mem_config.policy
+        response = requests.get(url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
+        jsonResponse = response.json()
     
+    mem_size = jsonResponse['capacity']      ## should be retrieved from database
+    replace_policy = jsonResponse['policy']
+    memcache = jsonResponse['memcache']
     return render_template('memcache_option.html', 
                             memcache=memcache,
                             mem_size=mem_size,
@@ -142,7 +136,7 @@ def MemcacheOption():
 
 @webapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
-    memcache.clear()
+    # memcache.clear()
     flash("Cache clear success!")
     return redirect(url_for('MemcacheOption'))
 
