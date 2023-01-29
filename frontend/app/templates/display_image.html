@@ -3,7 +3,10 @@
 {% block title %}Image look up{% endblock %}
 
 {% block content %}
-    <img src = "{{image_path}}">
-    <label>Associated Key:</label>
-    <p>{{image_key}}</p>
+    <div>
+    <img src = "{{image_path}}" class="image">
+    <br>
+    <p class="text">Associated Key:{{image_key}}</p>
+    </div>
+
 {% endblock %}
