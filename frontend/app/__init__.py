@@ -9,7 +9,6 @@ from database import database_credential
 webapp = Flask(__name__)
 
 
-
 webapp.config['SECRET_KEY'] = 'dev' 
 
 
