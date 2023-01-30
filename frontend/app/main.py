@@ -8,9 +8,11 @@ from app import db, Images
 
 @webapp.route('/')
 def main():
-    
-    return render_template("main.html")
+    return render_template("index.html")
 
+@webapp.route('/upload_image')
+def upload_image():
+    return render_template("upload_image.html")
 
 @webapp.route('/api/upload', methods=['POST'])
 def UploadImage():
@@ -59,27 +61,29 @@ def UploadImage():
     return response
 
 
-@webapp.route('/image_lookup', methods=['POST'])
+@webapp.route('/image_lookup', methods=['POST','GET'])
 def ImageLookup():
-    image_key = request.form['image_key']
-
-    url = "http://127.0.0.1:5001"
-    response = requests.get(url + "/get", data={'image_key': image_key})
-    jsonResponse = response.json()
-    image_path = jsonResponse['image_path']
     
-    if image_path != 'not found':
-        return render_template("display_image.html", image_path=image_path, image_key=image_key)
-    else:
-        ## Interact with database
-        db_image = Images.query.filter_by(image_key=image_key).first()
-        if db_image != None:
-            image_path = db_image.image
-            # put the key into memcache
-            requests.get(url + '/put', data={'image_key': image_key, 'image_path':image_path})
+    if request.method == 'POST':
+        image_key = request.form['image_key']
+        url = "http://127.0.0.1:5001"
+        response = requests.get(url + "/get", data={'image_key': image_key})
+        jsonResponse = response.json()
+        image_path = jsonResponse['image_path']
+        
+        if image_path != 'not found':
             return render_template("display_image.html", image_path=image_path, image_key=image_key)
+        else:
+            ## Interact with database
+            db_image = Images.query.filter_by(image_key=image_key).first()
+            if db_image != None:
+                image_path = db_image.image
+                # put the key into memcache
+                requests.get(url + '/put', data={'image_key': image_key, 'image_path':image_path})
+                return render_template("display_image.html", image_path=image_path, image_key=image_key)
 
-        return "Image not found"
+            return "Image not found"
+    return render_template('display_image.html')
 
 
 @webapp.route('/api/list_keys', methods=['POST'])
@@ -106,11 +110,8 @@ def DeleteAllKeys():
     url = "http://127.0.0.1:5001"
 
     response = requests.get(url + '/cache_clear')
-
-    resp = {"success" : "true"}
-
-
-    return resp
+    jsonResponse = response.json()
+    return {'success':jsonResponse['success']}
 
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
@@ -127,7 +128,6 @@ def MemcacheOption():
         response = requests.get(url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
         jsonResponse = response.json()
     
-    mem_size = jsonResponse['capacity']      ## should be retrieved from database
     replace_policy = jsonResponse['policy']
     memcache = jsonResponse['memcache']
     return render_template('memcache_option.html', 
@@ -142,3 +142,7 @@ def CacheClear():
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
 
+
+@webapp.route('/memcache_statistics', methods=['GET', 'POST'])
+def MemStatistics():
+    return render_template('mem_statistics.html')

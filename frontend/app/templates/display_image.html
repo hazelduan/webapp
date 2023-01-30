@@ -3,10 +3,18 @@
 {% block title %}Image look up{% endblock %}
 
 {% block content %}
-    <div>
+    
+  <div>
+    <form action="{{ url_for('ImageLookup')}}" method="post">
+        <label>lookup key:</label>
+        <input type="text" name="image_key" />
+        <input class="button" type="submit" value="lookup image" />
+    </form>
+  </div>
+  <div>
     <img src = "{{image_path}}" class="image">
     <br>
     <p class="text">Associated Key:{{image_key}}</p>
-    </div>
+  </div>
 
 {% endblock %}
