@@ -6,7 +6,7 @@ mydb = mysql.connector.connect(
     passwd=database_credential.db_password,
     )
 
-my_cursor = mydb.cursor();
+my_cursor = mydb.cursor()
 my_cursor.execute(("CREATE DATABASE {}".format(database_credential.db_name)))
 
 my_cursor.execute("SHOW DATABASES")

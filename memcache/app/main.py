@@ -18,7 +18,7 @@ def main():
     memsize = init_memconfig.memsize
     policy = init_memconfig.policy
     memcache.set_config(cache_len=int(memsize), policy=policy)
-    
+
     html = '''
         <!DOCTYPE html>
             <html>
@@ -43,7 +43,7 @@ def put():
 
     if image_key in memcache.keys():
         memcache.pop(image_key)                         # invalidate the key in memcache
-    
+
     memcache[image_key] = image_path
 
     response = {
@@ -76,7 +76,7 @@ def MemcacheOption():
         db.session.commit()
 
         memcache.set_config(cache_len=int(capacity), policy=policy)
-    
+   
     return {'capacity': mem_config.memsize, 'policy': mem_config.policy, 'memcache':memcache}
 
 @memapp.route('/cache_clear',methods=['GET'])

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Index{% endblock %}
+
+{% block content %}
+  <div>
+    <form action="{{ url_for('upload_image')}}">
+      <button>Upload Image</button>
+    </form>
+  </div>
+
+  <div>
+    <form action="{{ url_for('ImageLookup')}}">
+      <button>Image Lookup</button>
+    </form>
+  </div>
+
+  <div>
+    <form action="{{ url_for('KeysDisplay')}}" method="post">
+        <button>Display Keys</button>
+    </form>
+  </div>
+
+  <div>
+    <form action="{{ url_for('MemcacheOption')}}">
+        <button>Memcache Options</button>
+    </form>
+  </div>
+  <div>
+    <form action="{{ url_for('MemStatistics')}}">
+      <button>Memcache Statistics</button>
+  </div>
+  <div>
+    <img src="https://helloflask.com/totoro.gif" alt="chinchilla">
+  </div>
+{% endblock %}
