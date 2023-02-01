@@ -19,6 +19,11 @@ class CacheDict(OrderedDict):
         self.policy = policy
         assert policy in ['LRU', 'Random']
         assert cache_len > 0
+        self.requests_num = 0
+        
+        self.cache_lookup = 0
+        self.cache_miss = 0
+        self.cache_hit = 0
 
         super().__init__(*args, **kwargs)
     
@@ -74,8 +79,13 @@ class MemcacheConfig(db.Model):
     policy = db.Column(db.String(50))
     memsize = db.Column(db.String(10))
 
-
-
+class MemcacheStatistics(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    num_of_items = db.Column(db.String(10))
+    total_size_of_items = db.Column(db.String(10))
+    number_of_requests_served = db.Column(db.String(10))
+    miss_rate = db.Column(db.String(10))
+    hit_rate = db.Column(db.String(10))
 
 
 from app import main

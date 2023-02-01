@@ -4,4 +4,63 @@
 
 {% block content %}
 
+<!-- button 1 -->
+<div>
+  <p>Number of items in Memcache:</p>
+  <p><br></p>
+  <button onclick="numOfItems()">Click me!</button>
+  <p id="number of items"></p>
+</div>
+<script>
+  function numOfItems(){
+    document.getElementById("number of items").innerHTML="test 1";
+    }
+</script>
+<!-- button 2 -->
+<div>
+    <p>Total size of items in memcache:</p>
+    <p><br></p>
+    <button onclick="sizeOfItems()">Clickme!</button>
+    <p id="size of items"></p>
+</div>
+<script>
+  function sizeOfItems(){
+    document.getElementById("size of items").innerHTML="test 2";
+    }  
+</script>
+<!-- button 3 -->
+<div>
+    <p>Number of requests served:</p>
+    <button onclick="numOfReqs()">Clickme!</button>
+    <p id="num of requests"></p>
+</div>
+<script>
+  function numOfReqs(){
+    document.getElementById("num of requests").innerHTML="test 3";
+    }  
+</script>
+<!-- button 4 -->
+<div>
+    <p>Miss rate:</p>
+    <button onclick="missRate()">Clickme!</button>
+    <p id="miss rate"></p>
+</div>
+<script>
+  function missRate(){
+    document.getElementById("miss rate").innerHTML="test 4";
+    }
+</script>
+<!-- button 5 -->
+<div>
+    <p>Hit rate:</p>
+    <button onclick="hitRate()">Clickme!</button>
+    <p id="hit rate"></p>
+</div>
+<script>
+  function hitRate(){
+    document.getElementById("hit rate").innerHTML="test 5";
+    }  
+</script>
+
+
 {% endblock %}
