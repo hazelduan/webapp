@@ -1,3 +1,10 @@
+import mysql.connector
+import sys
+sys.path.append("..")
+sys.path.append("..")
+from database import database_credential
+
+
 
 from flask import render_template, url_for, request, flash, redirect
 from app import webapp
@@ -16,6 +23,7 @@ def upload_image():
 
 @webapp.route('/api/upload', methods=['POST'])
 def UploadImage():
+    
     image_key = request.form['key']
     image = request.files['file']
 
@@ -63,7 +71,7 @@ def UploadImage():
 
 @webapp.route('/image_lookup', methods=['POST','GET'])
 def ImageLookup():
-    
+
     if request.method == 'POST':
         image_key = request.form['image_key']
         url = "http://127.0.0.1:5001"
@@ -123,7 +131,7 @@ def MemcacheOption():
         policy = request.form['policy']
         response = requests.get(url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
         jsonResponse = response.json()
-        
+
     else:
         response = requests.get(url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
         jsonResponse = response.json()
@@ -143,6 +151,26 @@ def CacheClear():
     return {'success' : jsonResponse['success']}
 
 
-@webapp.route('/memcache_statistics', methods=['GET', 'POST'])
+@webapp.route('/memcache_statistics', methods=['GET'])
 def MemStatistics():
+    # url = "http://127.0.0.1:5001"
+
+    # response = requests.get(url + '/statistics')
+    # jsonResponse = response.json()
+
+    # number_of_items = jsonResponse['number_of_items']
+    # total_size = jsonResponse['total_size']
+    mydb = mysql.connector.connect(
+    host=database_credential.db_host,
+    user=database_credential.db_user,
+    passwd=database_credential.db_password,
+    )
+    my_cursor = mydb.cursor()
+    # my_cursor.execute(("CREATE DATABASE {}".format(database_credential.db_name)))
+
+    # my_cursor.execute("SHOW DATABASES")
+    # for db in my_cursor:
+    #     print(db)
     return render_template('mem_statistics.html')
+
+
