@@ -6,7 +6,7 @@
     <h2>Show all the keys in memcache.</h2>
     <input type="button" onclick="f1();" value="show">
     <p>{{memcache|length}} keys</p>
-    <ul id="tab" style="display:none">
+    <ul id="tab">
         {% for keys in memcache.keys() %}
         <li>{{keys}}</li>
         {% endfor%}
