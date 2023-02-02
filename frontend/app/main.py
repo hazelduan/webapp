@@ -3,7 +3,7 @@ import sys
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-
+from app import base_path, file_system_path
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -28,42 +28,35 @@ def UploadImage():
     image_key = request.form['key']
     image = request.files['file']
     
-    cur_folder_path = os.path.dirname(__file__)    # current file path
+    save_directory = os.path.join(file_system_path, image_key)
+    if not os.path.exists(save_directory):        # if dirs do not exist, create one
+        os.makedirs(save_directory)
 
-    temp_path = Path(cur_folder_path)
-    base_path = temp_path.parent.parent.absolute()
-    save_path = os.path.join(base_path, 'file_storage', image_key)
-    if not os.path.exists(save_path):        # if dirs do not exist, create one
-        os.makedirs(save_path)
-
-    save_path = os.path.join(save_path, image.filename)  # image save path
-    image_path = os.path.join('file_storage', image_key, image.filename)
-
+    save_path = os.path.join(save_directory, image.filename)  # image save path
+    relative_path = os.path.join(image_key, image.filename)
 
     ##if image_key in database:
     #     ## update key in database
     db_image = Images.query.filter_by(image_key=image_key).first()
-    if db_image != None:
-        old_save_path = os.path.join(base_path, db_image.image)
-        os.remove(old_save_path)                        # delete the old image
-        db_image.image = image_path
-        db.session.commit()
-    # Save the image_key and image path in database
-    else:
-        db_image = Images(image_key=image_key, image=image_path)
+    if db_image == None:
+        # Save the image_key and image path in database
+        db_image = Images(image_key=image_key, image_path=relative_path)
         db.session.add(db_image)
+        db.session.commit()
+    else:
+        # db already stored path
+        os.remove(save_path)                        # delete the old image
+        db_image.image_path = relative_path
         db.session.commit()
 
     image.save(save_path)                  # save the image in local file system
 
 
-
     url = "http://127.0.0.1:5001"
-    response = requests.get(url + "/put", data={'image_key': image_key, 'image_path': image_path})
+    response = requests.get(url + "/put", data={'image_key': image_key, 'image_path': relative_path})
     jsonResponse = response.json()
     answer = jsonResponse['success']
 
-    
     response = webapp.response_class(
             response=json.dumps('success {}'.format(answer)),
             status=200,
