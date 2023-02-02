@@ -4,9 +4,11 @@
 
 {% block content %}
   <div>
-    <p><b>Show all the keys in memcache:</b>
-    <br>
-      <button onclick="f1()">show keys</button>
+    <p>
+      <b>Show all the keys in memcache:</b>
+      <br>
+        <button onclick="f1()">show keys</button>
+      </br>
     </p>
     
     <p id="tab">
@@ -42,8 +44,8 @@
     <form action="{{url_for('CacheClear')}}" method="post">
         <input class="button" type="submit" value="Cache clear" />
     </form>
-  </div>
-{% endblock %}
+  </div> -->
+
 
 <script type="text/javascript">
     function f1(){
@@ -51,3 +53,5 @@
     tab.style.display=(tab.style.display=="none"? "":"none");
     }
 </script>
+{% endblock %}
+
