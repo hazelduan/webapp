@@ -1,3 +1,10 @@
+import mysql.connector
+import sys
+sys.path.append("..")
+sys.path.append("..")
+from database import database_credential
+
+
 
 from flask import render_template, url_for, request, flash, redirect
 from app import webapp
@@ -8,12 +15,15 @@ from app import db, Images
 
 @webapp.route('/')
 def main():
-    
-    return render_template("main.html")
+    return render_template("index.html")
 
+@webapp.route('/upload_image')
+def upload_image():
+    return render_template("upload_image.html")
 
 @webapp.route('/api/upload', methods=['POST'])
 def UploadImage():
+    
     image_key = request.form['key']
     image = request.files['file']
 
@@ -59,27 +69,29 @@ def UploadImage():
     return response
 
 
-@webapp.route('/image_lookup', methods=['POST'])
+@webapp.route('/image_lookup', methods=['POST','GET'])
 def ImageLookup():
-    image_key = request.form['image_key']
 
-    url = "http://127.0.0.1:5001"
-    response = requests.get(url + "/get", data={'image_key': image_key})
-    jsonResponse = response.json()
-    image_path = jsonResponse['image_path']
-    
-    if image_path != 'not found':
-        return render_template("display_image.html", image_path=image_path, image_key=image_key)
-    else:
-        ## Interact with database
-        db_image = Images.query.filter_by(image_key=image_key).first()
-        if db_image != None:
-            image_path = db_image.image
-            # put the key into memcache
-            requests.get(url + '/put', data={'image_key': image_key, 'image_path':image_path})
+    if request.method == 'POST':
+        image_key = request.form['image_key']
+        url = "http://127.0.0.1:5001"
+        response = requests.get(url + "/get", data={'image_key': image_key})
+        jsonResponse = response.json()
+        image_path = jsonResponse['image_path']
+        
+        if image_path != 'not found':
             return render_template("display_image.html", image_path=image_path, image_key=image_key)
+        else:
+            ## Interact with database
+            db_image = Images.query.filter_by(image_key=image_key).first()
+            if db_image != None:
+                image_path = db_image.image
+                # put the key into memcache
+                requests.get(url + '/put', data={'image_key': image_key, 'image_path':image_path})
+                return render_template("display_image.html", image_path=image_path, image_key=image_key)
 
-        return "Image not found"
+            return "Image not found"
+    return render_template('display_image.html')
 
 
 @webapp.route('/api/list_keys', methods=['POST'])
@@ -106,11 +118,8 @@ def DeleteAllKeys():
     url = "http://127.0.0.1:5001"
 
     response = requests.get(url + '/cache_clear')
-
-    resp = {"success" : "true"}
-
-
-    return resp
+    jsonResponse = response.json()
+    return {'success':jsonResponse['success']}
 
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
@@ -122,12 +131,11 @@ def MemcacheOption():
         policy = request.form['policy']
         response = requests.get(url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
         jsonResponse = response.json()
-        
+
     else:
         response = requests.get(url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
         jsonResponse = response.json()
     
-    mem_size = jsonResponse['capacity']      ## should be retrieved from database
     replace_policy = jsonResponse['policy']
     memcache = jsonResponse['memcache']
     return render_template('memcache_option.html', 
@@ -141,4 +149,37 @@ def CacheClear():
     response = requests.get(url + '/cache_clear')
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
+
+
+@webapp.route('/memcache_statistics', methods=['GET'])
+def MemStatistics():
+    # url = "http://127.0.0.1:5001"
+
+    # response = requests.get(url + '/statistics')
+    # jsonResponse = response.json()
+
+    # number_of_items = jsonResponse['number_of_items']
+    # total_size = jsonResponse['total_size']
+    mydb = mysql.connector.connect(
+    host=database_credential.db_host,
+    user=database_credential.db_user,
+    passwd=database_credential.db_password,
+    )
+    my_cursor = mydb.cursor()
+    my_cursor.execute(("USE IMAGES;"))
+    my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
+
+    for db_statis in my_cursor:
+        number_of_items = db_statis[1]
+        total_size_of_items = db_statis[2]
+        number_of_request_serverd = db_statis[3]
+        miss_rate = db_statis[4]
+        hit_rate = db_statis[5]
+
+    return render_template('mem_statistics.html', num_of_items=number_of_items,
+                                                total_size_of_items=total_size_of_items,
+                                                number_of_request_serverd=number_of_request_serverd,
+                                                miss_rate=miss_rate,
+                                                hit_rate=hit_rate)
+
 

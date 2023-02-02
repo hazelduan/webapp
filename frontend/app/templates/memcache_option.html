@@ -3,17 +3,27 @@
 {% block title %}Memcache options{% endblock %}
 
 {% block content %}
-    <h2>Show all the keys in memcache.</h2>
-    <input type="button" onclick="f1();" value="show">
-    <p>{{memcache|length}} keys</p>
-    <ul id="tab">
-        {% for keys in memcache.keys() %}
-        <li>{{keys}}</li>
-        {% endfor%}
-    </ul>
-
+  <div>
+    <p>
+      <b>Show all the keys in memcache:</b>
+      <br>
+        <button onclick="f1()">show keys</button>
+      </br>
+    </p>
+    
+    <p id="tab">
+        <a> {{memcache|length}} keys</a>
+        <ul>
+            {% for key in memcache.keys() %}
+              <li>{{key}}</li>
+            {% endfor%}
+        </ul>
+    </p>
+    
+  </div>
+  <div>
     <form action="{{url_for('MemcacheOption')}}" method='post'>
-        <h2>Configure parameters of memcache</h2>
+        <p><b>Configure parameters of memcache:</b></p>
         <label>Capacity (MB) : {{memcache|length}}MB</label>
         0
         <input type="range" min="0" max="10" name="capacity" />
@@ -26,13 +36,16 @@
             <option value="LRU">Least Recently Used</option>
         </select>
           <br><br>
-        <input type="submit" value="upload" />
+        <input class="button" type="submit" value="upload" style="text-align: center;"/>
     </form>
-
+  </div>
+  <div>
+    <br>
     <form action="{{url_for('CacheClear')}}" method="post">
-        <input type="submit" value="Cache clear" />
+        <input class="button" type="submit" value="Cache clear" />
     </form>
-{% endblock %}
+  </div> -->
+
 
 <script type="text/javascript">
     function f1(){
@@ -40,3 +53,5 @@
     tab.style.display=(tab.style.display=="none"? "":"none");
     }
 </script>
+{% endblock %}
+

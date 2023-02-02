@@ -1,14 +1,17 @@
 import mysql.connector
-import database_credential
+#import database_credential
 mydb = mysql.connector.connect(
-    host=database_credential.db_host,
-    user=database_credential.db_user,
-    passwd=database_credential.db_password,
+    host="localhost",
+    user="root",
+    #passwd=database_credential.db_password,
+    passwd="linkaize1234"
     )
 
-my_cursor = mydb.cursor();
-my_cursor.execute(("CREATE DATABASE {}".format(database_credential.db_name)))
-
-my_cursor.execute("SHOW DATABASES")
+my_cursor = mydb.cursor()
+#my_cursor.execute(("CREATE DATABASE {}".format(database_credential.db_name)))
+my_cursor.execute(("USE IMAGES;"))
+my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
+# my_cursor.execute("SHOW DATABASES")
 for db in my_cursor:
     print(db)
+    print(db[0])

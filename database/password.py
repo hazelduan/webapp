@@ -1,1 +1,1 @@
-password = 'linkaize1234'
+password="linkaize1234"
