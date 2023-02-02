@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from collections import OrderedDict
 import random
+from flask_apscheduler import APScheduler
 import sys
 sys.path.append('..')
 sys.path.append('..')
@@ -11,6 +12,19 @@ global memcache
 
 memapp = Flask(__name__)
 
+# Scheduler
+
+class Config(object):
+    SCHEDULER_API_ENABLED = True
+
+
+memapp.config.from_object(Config())
+scheduler = APScheduler()
+scheduler.init_app(memapp)
+
+
+
+
 ## Memcache
 class CacheDict(OrderedDict):
 
@@ -19,6 +33,11 @@ class CacheDict(OrderedDict):
         self.policy = policy
         assert policy in ['LRU', 'Random']
         assert cache_len > 0
+        self.requests_num = 0
+        
+        self.cache_lookup = 0
+        self.cache_miss = 0
+        self.cache_hit = 0
 
         super().__init__(*args, **kwargs)
     
@@ -74,8 +93,13 @@ class MemcacheConfig(db.Model):
     policy = db.Column(db.String(50))
     memsize = db.Column(db.String(10))
 
-
-
+class MemcacheStatistics(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    num_of_items = db.Column(db.Integer)
+    total_size_of_items = db.Column(db.Integer)
+    number_of_requests_served = db.Column(db.Integer)
+    miss_rate = db.Column(db.Float)
+    hit_rate = db.Column(db.Float)
 
 
 from app import main
