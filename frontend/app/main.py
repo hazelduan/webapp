@@ -5,6 +5,7 @@ from flask import json
 import requests
 import os
 from app import db, Images
+from pathlib import Path
 
 @webapp.route('/')
 def main():
@@ -18,14 +19,17 @@ def upload_image():
 def UploadImage():
     image_key = request.form['key']
     image = request.files['file']
+    
+    cur_folder_path = os.path.dirname(__file__)    # current file path
 
-    base_path = os.path.dirname(__file__)    # current file path
-    save_path = os.path.join(base_path, 'static/images')
+    temp_path = Path(cur_folder_path)
+    base_path = temp_path.parent.parent.absolute()
+    save_path = os.path.join(base_path, 'file_storage', image_key)
     if not os.path.exists(save_path):        # if dirs do not exist, create one
         os.makedirs(save_path)
 
     save_path = os.path.join(save_path, image.filename)  # image save path
-    image_path = os.path.join('static/images', image.filename)
+    image_path = os.path.join('file_storage', image_key, image.filename)
 
 
     ##if image_key in database:
