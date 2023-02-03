@@ -172,13 +172,13 @@ def MemStatistics():
     for db_statis in my_cursor:
         number_of_items = db_statis[1]
         total_size_of_items = db_statis[2]
-        number_of_request_serverd = db_statis[3]
+        number_of_request_served = db_statis[3]
         miss_rate = db_statis[4]
         hit_rate = db_statis[5]
 
-    return render_template('mem_statistics.html', num_of_items=number_of_items,
+    return render_template('mem_statistics.html', time = 0, num_of_items=number_of_items,
                                                 total_size_of_items=total_size_of_items,
-                                                number_of_request_serverd=number_of_request_serverd,
+                                                number_of_request_served=number_of_request_served,
                                                 miss_rate=miss_rate,
                                                 hit_rate=hit_rate)
 
