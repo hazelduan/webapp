@@ -3,7 +3,7 @@ import sys
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from app import base_path, file_system_path
+from configuration import base_path, file_system_path, backend_base_url
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -48,12 +48,11 @@ def UploadImage():
         os.remove(save_path)                        # delete the old image
         db_image.image_path = relative_path
         db.session.commit()
-
+    print('save_path:', save_path)
     image.save(save_path)                  # save the image in local file system
 
 
-    url = "http://127.0.0.1:5001"
-    response = requests.get(url + "/put", data={'image_key': image_key, 'image_path': relative_path})
+    response = requests.get(backend_base_url + "/put", data={'image_key': image_key, 'image_path': relative_path})
     jsonResponse = response.json()
     answer = jsonResponse['success']
 
@@ -71,21 +70,24 @@ def ImageLookup():
 
     if request.method == 'POST':
         image_key = request.form['image_key']
-        url = "http://127.0.0.1:5001"
-        response = requests.get(url + "/get", data={'image_key': image_key})
+
+        response = requests.post(backend_base_url + "/get", data={'image_key': image_key})
         jsonResponse = response.json()
-        image_path = jsonResponse['image_path']
+        image_content = jsonResponse['image_content']
         
-        if image_path != 'not found':
-            return render_template("display_image.html", image_path=image_path, image_key=image_key)
+        if image_content != 'not found':
+            return render_template("display_image_from_cache.html", image_content=image_content, image_key=image_key)
         else:
             ## Interact with database
             db_image = Images.query.filter_by(image_key=image_key).first()
             if db_image != None:
-                image_path = db_image.image
+                
+                html_path = os.path.join('..', '..', '..', 'file_storage', db_image.image_path)
+                print(html_path)
+                html_path = 'file_storage\dd\pikaImage.png'
                 # put the key into memcache
-                requests.get(url + '/put', data={'image_key': image_key, 'image_path':image_path})
-                return render_template("display_image.html", image_path=image_path, image_key=image_key)
+                requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
+                return render_template("display_image.html", image_path=html_path, image_key=image_key)
 
             return "Image not found"
     return render_template('display_image.html')
@@ -112,25 +114,23 @@ def DeleteAllKeys():
     db.session.commit()
 
     ## Delete from memcache
-    url = "http://127.0.0.1:5001"
 
-    response = requests.get(url + '/cache_clear')
+    response = requests.get(backend_base_url + '/cache_clear')
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
 
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
-    url = "http://127.0.0.1:5001"
     
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
-        response = requests.get(url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
+        response = requests.get(backend_base_url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
         jsonResponse = response.json()
 
     else:
-        response = requests.get(url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
+        response = requests.get(backend_base_url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
         jsonResponse = response.json()
     
     replace_policy = jsonResponse['policy']
@@ -142,8 +142,7 @@ def MemcacheOption():
 
 @webapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
-    url = "http://127.0.0.1:5001"
-    response = requests.get(url + '/cache_clear')
+    response = requests.get(backend_base_url + '/cache_clear')
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
 

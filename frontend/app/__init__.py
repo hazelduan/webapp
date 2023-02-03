@@ -33,12 +33,6 @@ class Images(db.Model):
     image_path = db.Column(db.String(100))
 
 
-cur_folder_path = os.path.dirname(__file__)    # current file path
-temp_path = Path(cur_folder_path)
-base_path = temp_path.parent.parent.absolute()
-file_system_path = os.path.join(base_path, 'file_storage')
-
-
 import app.main
 
 
