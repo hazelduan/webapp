@@ -10,7 +10,7 @@ import base64
 sys.path.append("..")
 sys.path.append("..")
 from configuration import base_path, file_system_path, backend_base_url
-
+import datetime
 
 
 logger = logging.getLogger()
@@ -148,19 +148,24 @@ def Statistics():
     else:
         miss_rate = memcache.cache_miss / memcache.cache_lookup
         hit_rate = memcache.cache_hit / memcache.cache_lookup
+    # provide current time to mysql time format
     
+    cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
+
     #store statics in database every 5 seconds
-    store_statistics_in_database(number_of_items, total_size, request_num, miss_rate, hit_rate)
+    store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate)
     return {'store in database': 'true'}
 
-def store_statistics_in_database(number_of_items, total_size, request_num, miss_rate, hit_rate) -> None:
+def store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate) -> None:
     with memapp.app_context():
-        mem_statistics = MemcacheStatistics.query.first()
+        mem_statistics = MemcacheStatistics()
+        mem_statistics.time = cur_time
         mem_statistics.num_of_items = number_of_items
         mem_statistics.total_size_of_items = total_size
         mem_statistics.number_of_requests_served  = request_num
         mem_statistics.miss_rate = miss_rate
         mem_statistics.hit_rate = hit_rate
+        db.session.add(mem_statistics)
         db.session.commit()
 
 # scheduler to store statistics in database

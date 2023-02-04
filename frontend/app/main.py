@@ -157,20 +157,21 @@ def MemStatistics():
     # number_of_items = jsonResponse['number_of_items']
     # total_size = jsonResponse['total_size']
     mydb = mysql.connector.connect(
-    host=database_credential.db_host,
-    user=database_credential.db_user,
-    passwd=database_credential.db_password,
+        host=database_credential.db_host,
+        user=database_credential.db_user,
+        passwd=database_credential.db_password,
     )
     my_cursor = mydb.cursor()
     my_cursor.execute(("USE IMAGES;"))
     my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
 
     for db_statis in my_cursor:
-        number_of_items = db_statis[1]
-        total_size_of_items = db_statis[2]
-        number_of_request_serverd = db_statis[3]
-        miss_rate = db_statis[4]
-        hit_rate = db_statis[5]
+        time = db_statis[1]
+        number_of_items = db_statis[2]
+        total_size_of_items = db_statis[3]
+        number_of_request_serverd = db_statis[4]
+        miss_rate = db_statis[5]
+        hit_rate = db_statis[6]
 
     return render_template('mem_statistics.html', num_of_items=number_of_items,
                                                 total_size_of_items=total_size_of_items,
