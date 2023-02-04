@@ -56,10 +56,12 @@ def UploadImage():
 
     response = requests.get(backend_base_url + "/put", data={'image_key': image_key, 'image_path': relative_path})
     jsonResponse = response.json()
-    answer = jsonResponse['success']
 
+
+    resp = {"success" : jsonResponse['success'],
+            "key" : image_key}
     response = webapp.response_class(
-            response=json.dumps('success {}'.format(answer)),
+            response=json.dumps(resp),
             status=200,
             mimetype='application/json'
         )
@@ -98,11 +100,70 @@ def ImageLookup():
     return render_template('display_image.html')
 
 
-@webapp.route('/api/list_keys', methods=['POST'])
+@webapp.route('/api/key/<key_value>', methods=['POST'])
+def ImageLookupForTest(key_value):
+    image_key = key_value
+    response = requests.get(backend_base_url + "/get", data={'image_key': image_key})
+    jsonResponse = response.json()
+    image_content = jsonResponse['image_content']
+
+    if image_content == 'not found':
+        db_image = Images.query.filter_by(image_key=image_key).first()
+        if db_image != None:
+                
+            saved_path = os.path.join(file_system_path, db_image.image_path)
+
+            with open(saved_path, 'rb') as f:
+                image = f.read()
+                encoded_image = base64.b64encode(image)
+                image_content = encoded_image.decode()
+            # put the key into memcache
+            requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
+            resp = {
+                "success" : "true",
+                "key" : image_key,
+                "content" : image_content
+            }
+        else:
+            resp = {
+                "success": "false",
+                "error": {
+                    "code": "404",
+                    "message": "image not found"
+                }
+            }
+    else:
+        # found the image in cache
+        resp = {
+            "success" : "true",
+            "key" : image_key,
+            "content" : image_content
+        }
+    return resp
+
+
+@webapp.route('/api/list_keys_True', methods=['POST'])
 def KeysDisplay():
     ## Show all the available keys in database
     db_images = Images.query.all()
     return render_template('display_keys.html', db_images=db_images)
+
+@webapp.route('/api/list_keys', methods=['POST'])
+def KeysDisplayForTest():
+
+    db_images = Images.query.all()
+    keys_array = [db_image.image_key for db_image in db_images]
+    resp = {
+        "success" : "true",
+        "key" : keys_array
+    }
+
+    response = webapp.response_class(
+            response=json.dumps(resp),
+            status=200,
+            mimetype='application/json'
+        )
+    return response
 
 
 @webapp.route('/api/delete_all', methods=['POST'])
