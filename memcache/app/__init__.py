@@ -95,6 +95,7 @@ class MemcacheConfig(db.Model):
 
 class MemcacheStatistics(db.Model):
     id = db.Column(db.Integer, primary_key = True)
+    time = db.Column(db.Time)
     num_of_items = db.Column(db.Integer)
     total_size_of_items = db.Column(db.Integer)
     number_of_requests_served = db.Column(db.Integer)
