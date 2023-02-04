@@ -23,14 +23,38 @@
       <tr>
         <th>Time</th>
         <th>Number of Items</th>
-        <th>Total Size of Items</th>
+        <th>Total Size of Items (KB)</th>
         <th>Number of Request Served</th>
         <th>Miss Rate</th>
         <th>Hit Rate</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
+      
+      <script type="text/javascript">
+        data_to_render = {{ data_to_render|tojson }};
+        
+        let time = data_to_render.time;
+        let num_of_items = data_to_render.num_of_items;
+        let total_size_of_items = data_to_render.total_size_of_items;
+        let number_of_request_served = data_to_render.number_of_request_served;
+        let miss_rate = data_to_render.miss_rate;
+        let hit_rate = data_to_render.hit_rate;
+
+        
+        for (let i = 0; i < {{data_to_render.number_of_rows}}; i++) {
+          document.write("<tr>");
+          document.write("<td>" + time[i] + "</td>");
+          document.write("<td>" + num_of_items[i] + "</td>");
+          document.write("<td>" + total_size_of_items[i] + "</td>");
+          document.write("<td>" + number_of_request_served[i] + "</td>");
+          document.write("<td>" + miss_rate[i] + "</td>");
+          document.write("<td>" + hit_rate[i] + "</td>");
+
+          document.write("</tr>");
+        }
+      </script>
+      <!-- <tr>
         <td>{{ time }}</td>
         <td>{{ num_of_items }}</td>
         <td>{{ total_size_of_items }}</td>
@@ -45,15 +69,7 @@
         <td>{{ number_of_request_served }}</td>
         <td>{{ miss_rate }}</td>
         <td>{{ hit_rate }}</td>
-      </tr>
-      <tr>
-        <td>{{ time }}</td>
-        <td>{{ num_of_items }}</td>
-        <td>{{ total_size_of_items }}</td>
-        <td>{{ number_of_request_served }}</td>
-        <td>{{ miss_rate }}</td>
-        <td>{{ hit_rate }}</td>
-      </tr>
+      </tr> -->
     </tbody>
 </table>
 
