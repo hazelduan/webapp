@@ -6,9 +6,9 @@ THis is the instructions for assign1, including db config, and flask run.
     ```console
     flask shell
     ```
-Attention : need to be in frontend for memcache for flask need to find an app to run this command.
+Attention : need to be in frontend or memcache folder for flask need to find an app to run this command.
 
-2. rebuild table
+2. Rebuild table
 
     ```console
     from app import db
@@ -56,5 +56,5 @@ Here replace "yourpassword" with your own password of MySQL.
     ```console
     DB_HOST=localhost:hostnumber flask --debug run --port <portnumber>
     ```
-    Frontend port number is 5000, backend is 5001.
+    Frontend port number is 5000, backend is 5001. DB by default is 3306.
 
