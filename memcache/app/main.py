@@ -3,7 +3,15 @@ from app import memapp, memcache, scheduler
 from flask import json
 from app import db, MemcacheConfig, MemcacheStatistics
 import datetime
+import sys
+import os
 import logging
+import base64
+sys.path.append("..")
+sys.path.append("..")
+from configuration import base_path, file_system_path, backend_base_url
+import datetime
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -64,27 +72,33 @@ def put():
     if image_key in memcache.keys():
         memcache.pop(image_key)       # invalidate the key in memcache to update key-value
 
-    memcache[image_key] = image_path
-
+    # memcache[image_key] = image_path
+    saved_path = os.path.join(file_system_path, image_path)
+    
+    with open(saved_path, 'rb') as f:
+        image = f.read()
+        encoded_image = base64.b64encode(image)
+        memcache[image_key] = encoded_image
     response = {
         "success" : "true",
         "key" : image_key
     }
     return response
 
-@memapp.route('/get',methods=['GET'])
+@memapp.route('/get',methods=['POST'])
 def get():
     image_key = request.form.get('image_key')
     memcache.requests_num += 1
     memcache.cache_lookup += 1
 
     if image_key in memcache:
-        image_path = memcache[image_key]
+        image_content = memcache[image_key]
+        decoded_image = image_content.decode()
         memcache.cache_hit +=1
-        return {'image_path': image_path}
+        return {'image_content': decoded_image}
     
     memcache.cache_miss += 1
-    return {'image_path': 'not found'}
+    return {'image_content': 'not found'}
 
 
 @memapp.route('/memcache_option',methods=['GET'])
@@ -135,18 +149,23 @@ def Statistics():
         miss_rate = memcache.cache_miss / memcache.cache_lookup
         hit_rate = memcache.cache_hit / memcache.cache_lookup
     
+    # provide current time to mysql time format
+    cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
+
     #store statics in database every 5 seconds
-    store_statistics_in_database(number_of_items, total_size, request_num, miss_rate, hit_rate)
+    store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate)
     return {'store in database': 'true'}
 
-def store_statistics_in_database(number_of_items, total_size, request_num, miss_rate, hit_rate) -> None:
+def store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate) -> None:
     with memapp.app_context():
-        mem_statistics = MemcacheStatistics.query.first()
+        mem_statistics = MemcacheStatistics()
+        mem_statistics.time = cur_time
         mem_statistics.num_of_items = number_of_items
         mem_statistics.total_size_of_items = total_size
         mem_statistics.number_of_requests_served  = request_num
         mem_statistics.miss_rate = miss_rate
         mem_statistics.hit_rate = hit_rate
+        db.session.add(mem_statistics)
         db.session.commit()
 
 # scheduler to store statistics in database
