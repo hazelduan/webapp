@@ -82,11 +82,11 @@ def ImageLookup():
             db_image = Images.query.filter_by(image_key=image_key).first()
             if db_image != None:
                 
-                html_path = os.path.join('..', '..', '..', 'file_storage', db_image.image_path)
-                print(html_path)
-                html_path = 'file_storage\dd\pikaImage.png'
+                html_path = os.path.join('file_storage', db_image.image_path)
+
+                
                 # put the key into memcache
-                requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
+                #requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
                 return render_template("display_image.html", image_path=html_path, image_key=image_key)
 
             return "Image not found"
@@ -107,8 +107,8 @@ def DeleteAllKeys():
     base_path = os.path.dirname(__file__)
     db_images = Images.query.all()
     for db_image in db_images:                ## Keys should be from database, for now we use memcache
-        save_path = os.path.join(base_path, db_image.image)
-        os.remove(save_path)
+        saved_path = os.path.join(file_system_path, db_image.image)
+        os.remove(saved_path)
         ## Delete from database 
         db.session.delete(db_image)
     db.session.commit()
