@@ -5,7 +5,7 @@
 {% block content %}
 
 <!-- button 1 -->
-<div>
+<!-- <div>
   <p>Number of items in Memcache:</p>
   <p><br></p>
   <button onclick="numOfItems()">Click me!</button>
@@ -15,52 +15,49 @@
   function numOfItems(){
     document.getElementById("number of items").innerHTML= {{num_of_items}};
     }
-</script>
-<!-- button 2 -->
-<div>
-    <p>Total size of items in memcache:</p>
-    <p><br></p>
-    <button onclick="sizeOfItems()">Clickme!</button>
-    <p id="size of items"></p>
-</div>
-<script>
-  function sizeOfItems(){
-    document.getElementById("size of items").innerHTML={{total_size_of_items}};
-    }  
-</script>
-<!-- button 3 -->
-<div>
-    <p>Number of requests served:</p>
-    <button onclick="numOfReqs()">Clickme!</button>
-    <p id="num of requests"></p>
-</div>
-<script>
-  function numOfReqs(){
-    document.getElementById("num of requests").innerHTML={{number_of_request_serverd}};
-    }  
-</script>
-<!-- button 4 -->
-<div>
-    <p>Miss rate:</p>
-    <button onclick="missRate()">Clickme!</button>
-    <p id="miss rate"></p>
-</div>
-<script>
-  function missRate(){
-    document.getElementById("miss rate").innerHTML={{miss_rate}};
-    }
-</script>
-<!-- button 5 -->
-<div>
-    <p>Hit rate:</p>
-    <button onclick="hitRate()">Clickme!</button>
-    <p id="hit rate"></p>
-</div>
-<script>
-  function hitRate(){
-    document.getElementById("hit rate").innerHTML={{hit_rate}};
-    }  
-</script>
+</script> -->
 
+<table>
+  <caption> Memcache statistics over the past 10 minutes</caption>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Number of Items</th>
+        <th>Total Size of Items</th>
+        <th>Number of Request Served</th>
+        <th>Miss Rate</th>
+        <th>Hit Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ time }}</td>
+        <td>{{ num_of_items }}</td>
+        <td>{{ total_size_of_items }}</td>
+        <td>{{ number_of_request_served }}</td>
+        <td>{{ miss_rate }}</td>
+        <td>{{ hit_rate }}</td>
+      </tr>
+      <tr>
+        <td>{{ time }}</td>
+        <td>{{ num_of_items }}</td>
+        <td>{{ total_size_of_items }}</td>
+        <td>{{ number_of_request_served }}</td>
+        <td>{{ miss_rate }}</td>
+        <td>{{ hit_rate }}</td>
+      </tr>
+      <tr>
+        <td>{{ time }}</td>
+        <td>{{ num_of_items }}</td>
+        <td>{{ total_size_of_items }}</td>
+        <td>{{ number_of_request_served }}</td>
+        <td>{{ miss_rate }}</td>
+        <td>{{ hit_rate }}</td>
+      </tr>
+    </tbody>
+</table>
 
+<p>
+  This table includes all memcache over the past 10 minutes, where the time axis is in 5 second increments. Data fetched from database.
+</p>
 {% endblock %}
