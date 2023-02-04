@@ -28,12 +28,12 @@ def UploadImage():
     image = request.files['file']
 
     base_path = os.path.dirname(__file__)    # current file path
-    save_path = os.path.join(base_path, 'static/images')
+    save_path = os.path.join(base_path, '../../local_file_system/images')
     if not os.path.exists(save_path):        # if dirs do not exist, create one
         os.makedirs(save_path)
 
     save_path = os.path.join(save_path, image.filename)  # image save path
-    image_path = os.path.join('static/images', image.filename)
+    image_path = os.path.join('../../local_file_system/images', image.filename)
 
 
     ##if image_key in database:
