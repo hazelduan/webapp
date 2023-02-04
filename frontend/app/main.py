@@ -13,6 +13,7 @@ import requests
 import os
 from app import db, Images
 from pathlib import Path
+import base64
 
 @webapp.route('/')
 def main():
@@ -82,12 +83,15 @@ def ImageLookup():
             db_image = Images.query.filter_by(image_key=image_key).first()
             if db_image != None:
                 
-                html_path = os.path.join('file_storage', db_image.image_path)
+                saved_path = os.path.join(file_system_path, db_image.image_path)
 
-                
+                with open(saved_path, 'rb') as f:
+                    image = f.read()
+                    encoded_image = base64.b64encode(image)
+                    image_content = encoded_image.decode()
                 # put the key into memcache
-                #requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
-                return render_template("display_image.html", image_path=html_path, image_key=image_key)
+                # requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
+                return render_template("display_image.html", image_content=image_content, image_key=image_key)
 
             return "Image not found"
     return render_template('display_image.html')
