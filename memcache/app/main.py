@@ -148,8 +148,8 @@ def Statistics():
     else:
         miss_rate = memcache.cache_miss / memcache.cache_lookup
         hit_rate = memcache.cache_hit / memcache.cache_lookup
-    # provide current time to mysql time format
     
+    # provide current time to mysql time format
     cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
 
     #store statics in database every 5 seconds

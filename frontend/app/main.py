@@ -163,20 +163,33 @@ def MemStatistics():
     )
     my_cursor = mydb.cursor()
     my_cursor.execute(("USE IMAGES;"))
-    my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
-
+    # my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
+    my_cursor.execute(("SELECT * FROM images.memcache_statistics ORDER BY id DESC LIMIT 120"))
+    
+    time = []
+    number_of_items = []
+    total_size_of_items = []
+    number_of_request_served = []
+    miss_rate = []
+    hit_rate = []
+    print(my_cursor)
+    counter = 0
     for db_statis in my_cursor:
-        time = db_statis[1]
-        number_of_items = db_statis[2]
-        total_size_of_items = db_statis[3]
-        number_of_request_serverd = db_statis[4]
-        miss_rate = db_statis[5]
-        hit_rate = db_statis[6]
+        time.append(str(db_statis[1]))
+        number_of_items.append(db_statis[2])
+        total_size_of_items.append(db_statis[3])
+        number_of_request_served.append(db_statis[4])
+        miss_rate.append(db_statis[5])
+        hit_rate.append(db_statis[6])
+        counter += 1
+    print(type(time[2]))
+    print(time[0])
 
-    return render_template('mem_statistics.html', time = 0, num_of_items=number_of_items,
-                                                total_size_of_items=total_size_of_items,
-                                                number_of_request_served=number_of_request_served,
-                                                miss_rate=miss_rate,
-                                                hit_rate=hit_rate)
-
+    data_to_render = {'number_of_rows': counter, 'time':time, 'num_of_items':number_of_items, 'total_size_of_items':total_size_of_items, 'number_of_request_served':number_of_request_served, 'miss_rate':miss_rate, 'hit_rate':hit_rate}
+    # return render_template('mem_statistics.html', number_of_rows = counter, time = time, num_of_items=number_of_items,
+    #                                             total_size_of_items=total_size_of_items,
+    #                                             number_of_request_served=number_of_request_served,
+    #                                             miss_rate=miss_rate,
+    #                                             hit_rate=hit_rate)
+    return render_template('mem_statistics.html', data_to_render = data_to_render)
 
