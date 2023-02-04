@@ -28,30 +28,38 @@ scheduler.init_app(memapp)
 ## Memcache
 class CacheDict(OrderedDict):
 
-    def __init__(self, *args, cache_len: int = 10, policy : str = 'Random', **kwargs):
-        self.cache_len = cache_len
-        self.policy = policy
+    def __init__(self, *args, cache_size: int = 3096, policy : str = 'Random', **kwargs):
+        super().__init__(*args, **kwargs)
+
         assert policy in ['LRU', 'Random']
-        assert cache_len > 0
+        assert cache_size > 0
+
+        self.cache_size = cache_size
+        self.policy = policy
+        
+        self.cur_size = 0
         self.requests_num = 0
         
         self.cache_lookup = 0
         self.cache_miss = 0
         self.cache_hit = 0
 
-        super().__init__(*args, **kwargs)
+        
     
     def __setitem__(self, __key, __value) -> None:
         super().__setitem__(__key, __value)
         super().move_to_end(__key)
-
-        while len(self) > self.cache_len:
+        self.cur_size += int(len(__value) / 1024) # in KB
+        while self.cur_size > self.cache_size:
             if self.policy == 'LRU':
                 old_key = next(iter(self))
             elif self.policy == 'Random':
                 old_key = random.sample(self.keys(), 1)
                 old_key = old_key[0]
+            old_value = super().__getitem__(old_key)
+            self.cur_size -= int(len(old_value) / 1024)
             super().__delitem__(old_key)
+            
     
     def __getitem__(self, __key):
         val = super().__getitem__(__key)
@@ -59,18 +67,22 @@ class CacheDict(OrderedDict):
         return val
 
     
-    def set_config(self, cache_len : int, policy : str) -> None:
-        self.cache_len = cache_len
-        self.policy = policy
+    def set_config(self, cache_size : int, policy : str) -> None:
         assert policy in ['LRU', 'Random']
-        assert cache_len > 0
+        assert cache_size > 0
 
-        while len(self) > self.cache_len:
+        self.cache_size = cache_size
+        self.policy = policy
+        
+
+        while self.cur_size > self.cache_size:
             if self.policy == 'LRU':
                 old_key = next(iter(self))
             elif self.policy == 'Random':
                 old_key = random.sample(self.keys(), 1)
                 old_key = old_key[0]
+            old_value = super().__getitem__(old_key)
+            self.cur_size -= int(len(old_value) / 1024)
             super().__delitem__(old_key)
 
     def pop(self, __key):
@@ -95,6 +107,7 @@ class MemcacheConfig(db.Model):
 
 class MemcacheStatistics(db.Model):
     id = db.Column(db.Integer, primary_key = True)
+    time = db.Column(db.Time)
     num_of_items = db.Column(db.Integer)
     total_size_of_items = db.Column(db.Integer)
     number_of_requests_served = db.Column(db.Integer)
@@ -102,6 +115,32 @@ class MemcacheStatistics(db.Model):
     hit_rate = db.Column(db.Float)
 
 
+with memapp.app_context():
+    # Initialize memcache config
+    init_memconfig = MemcacheConfig.query.first()
+
+    if init_memconfig == None:              # when the database is created initially
+        init_memconfig = MemcacheConfig(policy='Random', memsize='3096')
+        db.session.add(init_memconfig)
+        db.session.commit()
+
+    memsize = init_memconfig.memsize
+    policy = init_memconfig.policy
+    memcache.set_config(cache_size=int(memsize), policy=policy)
+
+    # Initialize memcache statistics
+    init_memstatistics = MemcacheStatistics.query.first()
+
+    if init_memstatistics == None:
+        init_memstatistics = MemcacheStatistics(
+            num_of_items = 0,
+            total_size_of_items = 0,
+            number_of_requests_served = 0,
+            miss_rate = 0,
+            hit_rate = 0
+        )
+        db.session.add(init_memstatistics)
+        db.session.commit()
 from app import main
 
 

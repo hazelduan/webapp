@@ -11,10 +11,10 @@
       </br>
     </p>
     
-    <p id="tab">
+    <p id="tab" style="display:none">
         <a> {{memcache|length}} keys</a>
         <ul>
-            {% for key in memcache.keys() %}
+            {% for key in memcache %}
               <li>{{key}}</li>
             {% endfor%}
         </ul>
@@ -24,10 +24,11 @@
   <div>
     <form action="{{url_for('MemcacheOption')}}" method='post'>
         <p><b>Configure parameters of memcache:</b></p>
-        <label>Capacity (MB) : {{memcache|length}}MB</label>
+        <label>Capacity (KB) : {{memsize}}KB</label>
+        <p></p>
         0
-        <input type="range" min="0" max="10" name="capacity" />
-        10
+        <input type="range" min="0" max="3096" name="capacity" />
+        3096 KB
         <br>
         <br>
         <label for="policy">Replacement Policy: {{replace_policy}}</label>
