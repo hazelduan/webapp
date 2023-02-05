@@ -120,7 +120,7 @@ with memapp.app_context():
     init_memconfig = MemcacheConfig.query.first()
 
     if init_memconfig == None:              # when the database is created initially
-        init_memconfig = MemcacheConfig(policy='Random', memsize='3096')
+        init_memconfig = MemcacheConfig(policy='Random', memsize='50000')
         db.session.add(init_memconfig)
         db.session.commit()
 
