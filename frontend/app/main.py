@@ -165,11 +165,6 @@ def KeysDisplayForTest():
         "keys" : keys_array
     }
 
-    # response = webapp.response_class(
-    #         response=json.dumps(resp),
-    #         status=200,
-    #         mimetype='application/json'
-    #     )
     return resp
 
 
@@ -211,6 +206,7 @@ def MemcacheOption():
     replace_policy = jsonResponse['policy']
     memcache_values = jsonResponse['memcache']
     capacity = jsonResponse['capacity']
+    capacity = str(int(int(capacity) / 1024))
     return render_template('memcache_option.html', 
                             memcache=memcache_values,
                             replace_policy=replace_policy,
