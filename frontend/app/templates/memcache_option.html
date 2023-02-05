@@ -16,11 +16,11 @@
   <div>
     <form action="{{url_for('MemcacheOption')}}" method='post'>
         <p><b>Configure parameters of memcache:</b></p>
-        <label>Capacity (KB) : {{memsize}}KB</label>
+        <label>Capacity (MB) : {{memsize}}MB</label>
         <p></p>
         0
-        <input type="range" min="0" max="3096" name="capacity" />
-        3096 KB
+        <input type="range" min="0" max="51200" name="capacity" />
+        50 MB
         <br>
         <br>
         <label for="policy">Replacement Policy: {{replace_policy}}</label>
