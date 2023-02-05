@@ -173,8 +173,10 @@ def DeleteAllKeys():
     db_images = Images.query.all()
     for db_image in db_images:                ## Keys should be from database, for now we use memcache
         saved_path = os.path.join(file_system_path, db_image.image_path)
+        saved_directory = os.path.join(file_system_path, db_image.image_key)
         if os.path.exists(saved_path):
             os.remove(saved_path)
+            os.rmdir(saved_directory)
         ## Delete from database 
         db.session.delete(db_image)
     db.session.commit()
