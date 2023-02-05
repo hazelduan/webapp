@@ -54,12 +54,19 @@ def UploadImage():
     image.save(save_path)                  # save the image in local file system
 
 
-    response = requests.get(backend_base_url + "/put", data={'image_key': image_key, 'image_path': relative_path})
+    with open(save_path, 'rb') as f:
+        saved_image = f.read()
+        encoded_image = base64.b64encode(saved_image)
+
+    image_content = encoded_image.decode();
+    print('the type of image_content is:', type(image_content))
+    response = requests.get(backend_base_url + "/put", data={'image_key': image_key, 'image_content': image_content})
+    print('the response is:', response)
     jsonResponse = response.json()
 
 
     resp = {"success" : jsonResponse['success'],
-            "key" : image_key}
+            "key" : [image_key]}
     response = webapp.response_class(
             response=json.dumps(resp),
             status=200,
@@ -93,7 +100,7 @@ def ImageLookup():
                     encoded_image = base64.b64encode(image)
                     image_content = encoded_image.decode()
                 # put the key into memcache
-                requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
+                requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_content':image_content})
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
 
             return "Image not found"
@@ -121,7 +128,7 @@ def ImageLookupForTest(key_value):
             requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
             resp = {
                 "success" : "true",
-                "key" : image_key,
+                "key" : [image_key],
                 "content" : image_content
             }
         else:
@@ -136,7 +143,7 @@ def ImageLookupForTest(key_value):
         # found the image in cache
         resp = {
             "success" : "true",
-            "key" : image_key,
+            "key" : [image_key],
             "content" : image_content
         }
     return resp
@@ -155,15 +162,15 @@ def KeysDisplayForTest():
     keys_array = [db_image.image_key for db_image in db_images]
     resp = {
         "success" : "true",
-        "key" : keys_array
+        "keys" : keys_array
     }
 
-    response = webapp.response_class(
-            response=json.dumps(resp),
-            status=200,
-            mimetype='application/json'
-        )
-    return response
+    # response = webapp.response_class(
+    #         response=json.dumps(resp),
+    #         status=200,
+    #         mimetype='application/json'
+    #     )
+    return resp
 
 
 @webapp.route('/api/delete_all', methods=['POST'])
