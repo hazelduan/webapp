@@ -38,24 +38,41 @@ def main():
 @memapp.route('/put',methods=['GET'])
 def put():
     image_key = request.form.get('image_key')
-    image_path = request.form.get('image_path')
+    image_content = request.form.get('image_content')
     memcache.requests_num += 1
 
     if image_key in memcache.keys():
         memcache.pop(image_key)       # invalidate the key in memcache to update key-value
-
-    # memcache[image_key] = image_path
-    saved_path = os.path.join(file_system_path, image_path)
     
-    with open(saved_path, 'rb') as f:
-        image = f.read()
-        encoded_image = base64.b64encode(image)
-        memcache[image_key] = encoded_image
+    memcache[image_key] = str.encode(image_content)
+    
     response = {
         "success" : "true",
         "key" : image_key
     }
     return response
+
+# @memapp.route('/put',methods=['GET'])
+# def put():
+#     image_key = request.form.get('image_key')
+#     image_path = request.form.get('image_path')
+#     memcache.requests_num += 1
+
+#     if image_key in memcache.keys():
+#         memcache.pop(image_key)       # invalidate the key in memcache to update key-value
+
+#     # memcache[image_key] = image_path
+#     saved_path = os.path.join(file_system_path, image_path)
+    
+#     with open(saved_path, 'rb') as f:
+#         image = f.read()
+#         encoded_image = base64.b64encode(image)
+#         memcache[image_key] = encoded_image
+#     response = {
+#         "success" : "true",
+#         "key" : image_key
+#     }
+#     return response
 
 @memapp.route('/get',methods=['GET'])
 def get():
