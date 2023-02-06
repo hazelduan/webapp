@@ -1,5 +1,6 @@
 import mysql.connector
 import sys
+import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
@@ -14,6 +15,9 @@ import os
 from app import db, Images
 from pathlib import Path
 import base64
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 @webapp.route('/')
 def main():
