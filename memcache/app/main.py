@@ -54,7 +54,7 @@ def put():
 
 # @memapp.route('/put',methods=['GET'])
 # def put():
-#     image_key = request.form.get('image_key')
+#     image_key = request.form.get('image_key') 
 #     image_path = request.form.get('image_path')
 #     memcache.requests_num += 1
 
@@ -101,14 +101,13 @@ def MemcacheOption():
         mem_config.memsize = capacity
         mem_config.policy = policy
         db.session.commit()
-
         memcache.set_config(cache_size=int(capacity), policy=policy)
     return {'capacity': mem_config.memsize, 'policy': mem_config.policy, 'memcache': [key for key in memcache.keys()]}
 
 @memapp.route('/cache_clear',methods=['GET'])
 def CacheClear():
     memcache.clear()
-
+    memcache.cur_size = 0
     return {'success' : 'true'}
 
 
