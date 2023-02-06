@@ -32,7 +32,7 @@ class CacheDict(OrderedDict):
         super().__init__(*args, **kwargs)
 
         assert policy in ['LRU', 'Random']
-        assert cache_size > 0
+        assert cache_size >= 0
 
         self.cache_size = cache_size
         self.policy = policy
@@ -44,9 +44,14 @@ class CacheDict(OrderedDict):
         self.cache_miss = 0
         self.cache_hit = 0
 
-        
+         
     
     def __setitem__(self, __key, __value) -> None:
+        # if self.cur_size + int(len(__value) / 1024) > self.cache_size:
+        #     return
+        
+        if self.cache_size == 0:
+            return
         super().__setitem__(__key, __value)
         super().move_to_end(__key)
         self.cur_size += int(len(__value) / 1024) # in KB
@@ -65,15 +70,15 @@ class CacheDict(OrderedDict):
         val = super().__getitem__(__key)
         super().move_to_end(__key)
         return val
-
+ 
     
     def set_config(self, cache_size : int, policy : str) -> None:
         assert policy in ['LRU', 'Random']
-        assert cache_size > 0
+        assert cache_size >= 0
 
         self.cache_size = cache_size
         self.policy = policy
-        
+    
 
         while self.cur_size > self.cache_size:
             if self.policy == 'LRU':
