@@ -33,7 +33,7 @@ class Images(db.Model):
     image_path = db.Column(db.String(100))
 
 
-import app.main
+from app import main
 
 
 
