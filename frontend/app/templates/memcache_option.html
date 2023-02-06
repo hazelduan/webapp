@@ -5,20 +5,12 @@
 {% block content %}
   <div>
     <p>
-      <b>Show all the keys in memcache:</b>
+      <b>Show all the keys in memcache :  </b>
       <br>
-        <button onclick="f1()">show keys</button>
-      </br>
+      <button onclick="f1()">show keys</button>
     </p>
     
-    <p id="tab" style="display:none">
-        <a> {{memcache|length}} keys</a>
-        <ul>
-            {% for key in memcache %}
-              <li>{{key}}</li>
-            {% endfor%}
-        </ul>
-    </p>
+    <p id="tab"></p>
     
   </div>
   <div>
@@ -50,8 +42,13 @@
 
 <script type="text/javascript">
     function f1(){
-    var tab=document.getElementById("tab");
-    tab.style.display=(tab.style.display=="none"? "":"none");
+    var key = document.getElementById("tab");
+    key.innerHTML= {{ memcache|length }} + "keys\
+        <ul>\
+            {% for key in memcache %}\
+              <li>{{key}}</li>\
+            {% endfor%}\
+        </ul>";
     }
 </script>
 {% endblock %}
