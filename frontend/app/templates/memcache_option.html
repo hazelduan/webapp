@@ -23,9 +23,10 @@
         50 MB
         <br>
         <br>
-        <label for="policy">Replacement Policy: {{replace_policy}}</label>
+        <p for="policy">Replacement Policy: <br>{{replace_policy}}</p>
         <select name="policy" id="policy">
-            <option value="Random">Random</option>
+          <option value="">--Please choose an option--</option>
+          <option value="Random">Random</option>
             <option value="LRU">Least Recently Used</option>
         </select>
           <br><br>
