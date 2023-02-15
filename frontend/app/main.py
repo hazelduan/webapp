@@ -232,7 +232,7 @@ def MemStatistics():
         passwd=database_credential.db_password,
     )
     my_cursor = mydb.cursor()
-    my_cursor.execute(("USE IMAGES;"))
+    my_cursor.execute(("use images;"))
     # my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
     my_cursor.execute(("SELECT * FROM images.memcache_statistics ORDER BY id DESC LIMIT 120"))
     
