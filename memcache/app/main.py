@@ -2,7 +2,6 @@ from flask import render_template, url_for, request
 from app import memapp, memcache, scheduler
 from flask import json
 from app import db, MemcacheConfig, MemcacheStatistics
-import datetime
 import sys
 import os
 import logging

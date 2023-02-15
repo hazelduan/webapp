@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from collections import OrderedDict
 import random
+import datetime
 from flask_apscheduler import APScheduler
 import sys
 sys.path.append('..')
@@ -134,18 +135,19 @@ with memapp.app_context():
     memcache.set_config(cache_size=int(memsize), policy=policy)
 
     # Initialize memcache statistics
+    num_deleted = db.session.query(MemcacheStatistics).delete()
     init_memstatistics = MemcacheStatistics.query.first()
-
     if init_memstatistics == None:
         init_memstatistics = MemcacheStatistics(
             num_of_items = 0,
+            time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5],
             total_size_of_items = 0,
             number_of_requests_served = 0,
             miss_rate = 0,
             hit_rate = 0
         )
         db.session.add(init_memstatistics)
-        db.session.commit()
+    db.session.commit()
 from app import main
 
 

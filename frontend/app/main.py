@@ -252,8 +252,6 @@ def MemStatistics():
         miss_rate.append(db_statis[5])
         hit_rate.append(db_statis[6])
         counter += 1
-    print(type(time[2]))
-    print(time[0])
 
     data_to_render = {'number_of_rows': counter, 
                         'time':time, 
