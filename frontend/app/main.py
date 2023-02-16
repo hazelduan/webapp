@@ -33,6 +33,9 @@ def UploadImage():
     image_key = request.form['key']
     image = request.files['file']
     
+    if image_key == '' or image.filename == "":
+        return "please enter key and upload file"
+
     save_directory = os.path.join(file_system_path, image_key)
     if not os.path.exists(save_directory):        # if dirs do not exist, create one
         os.makedirs(save_directory)

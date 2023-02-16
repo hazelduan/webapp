@@ -3,8 +3,11 @@
 {% block title %} upload image {% endblock %}
 
 {% block content %}
-
+  <form action="{{ url_for('main')}}" method="get">
+    <button>Home</button>
+  </form>
   <div>
+    
     <form action="{{ url_for('UploadImage')}}" enctype='multipart/form-data' method="post">
         <label>key:</label>
         <input type="string" name="key" />
