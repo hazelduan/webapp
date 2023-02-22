@@ -15,9 +15,25 @@ import os
 from app import db, Images
 from pathlib import Path
 import base64
+import boto3
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+BUCKET_NAME = 'webapp-image-storage'
+
+s3 = boto3.client('s3')
+
+bucket_resp = s3.list_buckets()
+for bucket in bucket_resp['Buckets']:
+    print(bucket)
+
+response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+if response['KeyCount'] != 0:
+    for obj in response["Contents"]:
+        print(obj)
+
 
 @webapp.route('/')
 def main():
@@ -36,19 +52,14 @@ def UploadImage():
     if image_key == '' or image.filename == "":
         return "please enter key and upload file"
 
-    save_directory = os.path.join(file_system_path, image_key)
-    if not os.path.exists(save_directory):        # if dirs do not exist, create one
-        os.makedirs(save_directory)
-
-    save_path = os.path.join(save_directory, image.filename)  # image save path
-    relative_path = os.path.join(image_key, image.filename)
+    save_path = image_key + '/' + image.filename
 
     ##if image_key in database:
     #     ## update key in database
     db_image = Images.query.filter_by(image_key=image_key).first()
     if db_image == None:
         # Save the image_key and image path in database
-        db_image = Images(image_key=image_key, image_path=relative_path)
+        db_image = Images(image_key=image_key, image_path=save_path)
         db.session.add(db_image)
         db.session.commit()
     else:
@@ -56,16 +67,15 @@ def UploadImage():
         delete_path = os.path.join(file_system_path, db_image.image_path)
         if os.path.exists(delete_path):
             os.remove(delete_path)                        # delete the old image
-        db_image.image_path = relative_path
+        db_image.image_path = save_path
         db.session.commit()
-    image.save(save_path)                  # save the image in local file system
+    print("image type is : ", type(image))
+    print("image is : ", image)
 
-
-    with open(save_path, 'rb') as f:
-        saved_image = f.read()
-        encoded_image = base64.b64encode(saved_image)
-
+    encoded_image = base64.b64encode(image.read())
     image_content = encoded_image.decode();
+    image.seek(0) # reset the file pointer to the beginning of the file.
+    s3.upload_fileobj(image, BUCKET_NAME, save_path) # After uploading, the image will be closed.
     print('the type of image_content is:', type(image_content))
     response = requests.get(backend_base_url + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
@@ -94,22 +104,18 @@ def ImageLookup():
         image_content = jsonResponse['image_content']
         
         if image_content != 'not found':
+            print("Look up through memcache")
             return render_template("display_image.html", image_content=image_content, image_key=image_key)
         else:
             ## Interact with database
+            print("Look up through file system")
             db_image = Images.query.filter_by(image_key=image_key).first()
             if db_image != None:
-                
-                saved_path = os.path.join(file_system_path, db_image.image_path)
-
-                with open(saved_path, 'rb') as f:
-                    image = f.read()
-                    encoded_image = base64.b64encode(image)
-                    image_content = encoded_image.decode()
+                obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
+                image_content = base64.b64encode(obj['Body'].read()).decode()
                 # put the key into memcache
                 requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_content':image_content})
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
-
             return "Image not found"
     return render_template('display_image.html')
 
@@ -124,15 +130,10 @@ def ImageLookupForTest(key_value):
     if image_content == 'not found':
         db_image = Images.query.filter_by(image_key=image_key).first()
         if db_image != None:
-                
-            saved_path = os.path.join(file_system_path, db_image.image_path)
-
-            with open(saved_path, 'rb') as f:
-                image = f.read()
-                encoded_image = base64.b64encode(image)
-                image_content = encoded_image.decode()
+            obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
+            image_content = base64.b64encode(obj['Body'].read()).decode()
             # put the key into memcache
-            requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_path':db_image.image_path})
+            requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_content': image_content})
             resp = {
                 "success" : "true",
                 "key" : [image_key],
@@ -164,7 +165,6 @@ def KeysDisplay():
 
 @webapp.route('/api/list_keys', methods=['POST'])
 def KeysDisplayForTest():
-
     db_images = Images.query.all()
     keys_array = [db_image.image_key for db_image in db_images]
     resp = {
@@ -178,20 +178,19 @@ def KeysDisplayForTest():
 @webapp.route('/api/delete_all', methods=['POST'])
 def DeleteAllKeys():
     
-    ## Delete from local file system
+    ## Delete all from s3 bucket
+    s3_resource = boto3.resource('s3')
+    bucket = s3_resource.Bucket(BUCKET_NAME)
+    bucket.objects.all().delete()
+
+    ## Delete from database
     db_images = Images.query.all()
     for db_image in db_images:                ## Keys should be from database, for now we use memcache
-        saved_path = os.path.join(file_system_path, db_image.image_path)
-        saved_directory = os.path.join(file_system_path, db_image.image_key)
-        if os.path.exists(saved_path):
-            os.remove(saved_path)
-            os.rmdir(saved_directory)
-        ## Delete from database 
+        # Design choice: Can delete the file in s3 bucket one by one here, but we delete all already.
         db.session.delete(db_image)
     db.session.commit()
 
     ## Delete from memcache
-
     response = requests.get(backend_base_url + '/cache_clear')
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
