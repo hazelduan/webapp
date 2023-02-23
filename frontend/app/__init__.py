@@ -7,6 +7,7 @@ sys.path.append('..')
 from database import database_credential
 from pathlib import Path
 
+
 webapp = Flask(__name__)
 
 
@@ -32,7 +33,8 @@ class Images(db.Model):
     image_key = db.Column(db.String(50))
     image_path = db.Column(db.String(100))
 
-
+with webapp.app_context():
+    db.create_all() # create_all() will only create tables that don't exist yet
 from app import main
 
 
