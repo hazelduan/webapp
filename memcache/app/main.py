@@ -136,6 +136,6 @@ def store_statistics_in_database(cur_time, number_of_items, total_size, request_
 
 # scheduler to store statistics in database
 scheduler.add_job(func=Statistics, trigger='interval', seconds=5, id='job1')
-scheduler.start()
+# scheduler.start()
 
 

@@ -121,7 +121,9 @@ class MemcacheStatistics(db.Model):
 
 
 with memapp.app_context():
+
     # Initialize memcache config
+    db.create_all() # create_all() will only create tables that don't exist yet
     init_memconfig = MemcacheConfig.query.first()
 
     if init_memconfig == None:              # when the database is created initially
