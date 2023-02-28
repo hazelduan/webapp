@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
+import boto3
 import sys
 sys.path.append('..')
 sys.path.append('..')
@@ -35,6 +36,22 @@ class Images(db.Model):
 
 with webapp.app_context():
     db.create_all() # create_all() will only create tables that don't exist yet
+
+    # Amazon S3 Initialization
+BUCKET_NAME = 'webapp-image-storage'
+
+s3 = boto3.client('s3')
+s3_resource = boto3.resource('s3')
+
+bucket_resp = s3.list_buckets()
+for bucket in bucket_resp['Buckets']:
+    print(bucket)
+
+response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+if response['KeyCount'] != 0:
+    for obj in response["Contents"]:
+        print(obj)
+
 from app import main
 
 

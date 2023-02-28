@@ -24,6 +24,7 @@
   <caption> Memcache statistics over the past 10 minutes</caption>
     <thead>
       <tr>
+        <th>Node</th>
         <th>Time</th>
         <th>Number of Items</th>
         <th>Total Size of Items (KB)</th>
@@ -36,7 +37,7 @@
       
       <script type="text/javascript">
         data_to_render = {{ data_to_render|tojson }};
-        
+        let nodes = data_to_render.nodes;
         let time = data_to_render.time;
         let num_of_items = data_to_render.num_of_items;
         let total_size_of_items = data_to_render.total_size_of_items;
@@ -47,6 +48,7 @@
         
         for (let i = 0; i < {{data_to_render.number_of_rows}}; i++) {
           document.write("<tr>");
+          document.write("<td>" + nodes[i] + "</td>");
           document.write("<td>" + time[i] + "</td>");
           document.write("<td>" + num_of_items[i] + "</td>");
           document.write("<td>" + total_size_of_items[i] + "</td>");

@@ -22,8 +22,15 @@ memapp.config.from_object(Config())
 scheduler = APScheduler()
 scheduler.init_app(memapp)
 
-
-
+port_flag = 0
+CUR_PORT = -1
+for arg in sys.argv:
+    if port_flag == 1:
+        CUR_PORT = arg
+    if arg in ['--port']:
+        port_flag = 1
+        continue
+CUR_NODE = int(CUR_PORT) - 5000
 
 ## Memcache
 class CacheDict(OrderedDict):
@@ -118,6 +125,7 @@ class MemcacheStatistics(db.Model):
     number_of_requests_served = db.Column(db.Integer)
     miss_rate = db.Column(db.Float)
     hit_rate = db.Column(db.Float)
+    mem_node = db.Column(db.Integer)
 
 
 with memapp.app_context():
@@ -138,16 +146,21 @@ with memapp.app_context():
     # Initialize memcache statistics
     init_memstatistics = MemcacheStatistics.query.first()
 
-    if init_memstatistics == None:
-        init_memstatistics = MemcacheStatistics(
-            num_of_items = 0,
-            total_size_of_items = 0,
-            number_of_requests_served = 0,
-            miss_rate = 0,
-            hit_rate = 0
-        )
-        db.session.add(init_memstatistics)
-        db.session.commit()
+    # # delete the former useless data
+    # if init_memstatistics != None:
+    #     for item in MemcacheStatistics.query.all():
+    #         db.session.delete(item)
+    
+    init_memstatistics = MemcacheStatistics(
+        mem_node = CUR_NODE,
+        num_of_items = 0,
+        total_size_of_items = 0,
+        number_of_requests_served = 0,
+        miss_rate = 0,
+        hit_rate = 0
+    )
+    db.session.add(init_memstatistics)
+    db.session.commit()
 from app import main
 
 

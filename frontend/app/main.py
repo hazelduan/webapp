@@ -4,7 +4,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import base_path, file_system_path, backend_base_url
+from configuration import base_path, file_system_path, backend_base_url, base_port
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -12,27 +12,16 @@ from app import webapp
 from flask import json
 import requests
 import os
-from app import db, Images
+from app import db, Images, BUCKET_NAME, s3, s3_resource
 from pathlib import Path
 import base64
-import boto3
+import hashlib
+
 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-BUCKET_NAME = 'webapp-image-storage'
-
-s3 = boto3.client('s3')
-
-bucket_resp = s3.list_buckets()
-for bucket in bucket_resp['Buckets']:
-    print(bucket)
-
-response = s3.list_objects_v2(Bucket=BUCKET_NAME)
-if response['KeyCount'] != 0:
-    for obj in response["Contents"]:
-        print(obj)
 
 
 @webapp.route('/')
@@ -77,7 +66,16 @@ def UploadImage():
     image.seek(0) # reset the file pointer to the beginning of the file.
     s3.upload_fileobj(image, BUCKET_NAME, save_path) # After uploading, the image will be closed.
     print('the type of image_content is:', type(image_content))
-    response = requests.get(backend_base_url + "/put", data={'image_key': image_key, 'image_content': image_content})
+
+
+    # MD5 Hash Calculation
+    image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+    mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
+    # number of active node should be retrieve from manage app
+    # requests.get(url_for_manage_app, ..)
+    active_node = 8 
+    mem_port = mem_partition % active_node + base_port
+    response = requests.get(backend_base_url + str(mem_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
     jsonResponse = response.json()
 
@@ -99,7 +97,15 @@ def ImageLookup():
     if request.method == 'POST':
         image_key = request.form['image_key']
 
-        response = requests.get(backend_base_url + "/get", data={'image_key': image_key})
+        # MD5 Calculation
+        image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+        mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
+        # number of active node should be retrieve from manage app
+        # requests.get(url_for_manage_app, ..)
+        active_node = 8 
+        mem_port = mem_partition % active_node + base_port
+
+        response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
         jsonResponse = response.json()
         image_content = jsonResponse['image_content']
         
@@ -114,7 +120,7 @@ def ImageLookup():
                 obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
                 image_content = base64.b64encode(obj['Body'].read()).decode()
                 # put the key into memcache
-                requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_content':image_content})
+                requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
             return "Image not found"
     return render_template('display_image.html')
@@ -123,7 +129,16 @@ def ImageLookup():
 @webapp.route('/api/key/<key_value>', methods=['POST'])
 def ImageLookupForTest(key_value):
     image_key = key_value
-    response = requests.get(backend_base_url + "/get", data={'image_key': image_key})
+
+    # MD5 Calculation
+    image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+    mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
+    # number of active node should be retrieve from manage app
+    # requests.get(url_for_manage_app, ..)
+    active_node = 8 
+    mem_port = mem_partition % active_node + base_port
+
+    response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
     jsonResponse = response.json()
     image_content = jsonResponse['image_content']
 
@@ -133,7 +148,7 @@ def ImageLookupForTest(key_value):
             obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
             image_content = base64.b64encode(obj['Body'].read()).decode()
             # put the key into memcache
-            requests.get(backend_base_url + '/put', data={'image_key': image_key, 'image_content': image_content})
+            requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content': image_content})
             resp = {
                 "success" : "true",
                 "key" : [image_key],
@@ -179,7 +194,7 @@ def KeysDisplayForTest():
 def DeleteAllKeys():
     
     ## Delete all from s3 bucket
-    s3_resource = boto3.resource('s3')
+    
     bucket = s3_resource.Bucket(BUCKET_NAME)
     bucket.objects.all().delete()
 
@@ -190,15 +205,17 @@ def DeleteAllKeys():
         db.session.delete(db_image)
     db.session.commit()
 
-    ## Delete from memcache
-    response = requests.get(backend_base_url + '/cache_clear')
+    ## Delete from all the memcache
+    active_node = 8
+    for i in range(active_node):
+        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
 
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
-    
+    # should configure from manager app
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
@@ -221,7 +238,9 @@ def MemcacheOption():
 
 @webapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
-    response = requests.get(backend_base_url + '/cache_clear')
+    active_node = 8
+    for i in range(active_node):
+        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
 
@@ -234,9 +253,9 @@ def MemStatistics():
         passwd=database_credential.db_password,
     )
     my_cursor = mydb.cursor()
-    my_cursor.execute(("use images;"))
+    my_cursor.execute(("use {};".format(database_credential.db_name)))
     # my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
-    my_cursor.execute(("SELECT * FROM images.memcache_statistics ORDER BY id DESC LIMIT 120"))
+    my_cursor.execute(("SELECT * FROM memcache_statistics ORDER BY id DESC LIMIT 120"))
     
     time = []
     number_of_items = []
@@ -244,6 +263,7 @@ def MemStatistics():
     number_of_request_served = []
     miss_rate = []
     hit_rate = []
+    mem_nodes = []
     print(my_cursor)
     counter = 0
     for db_statis in my_cursor:
@@ -253,6 +273,7 @@ def MemStatistics():
         number_of_request_served.append(db_statis[4])
         miss_rate.append(db_statis[5])
         hit_rate.append(db_statis[6])
+        mem_nodes.append(db_statis[7])
         counter += 1
     print(type(time[2]))
     print(time[0])
@@ -263,6 +284,7 @@ def MemStatistics():
                         'total_size_of_items':total_size_of_items, 
                         'number_of_request_served':number_of_request_served, 
                         'miss_rate':miss_rate, 
-                        'hit_rate':hit_rate}
+                        'hit_rate':hit_rate,
+                        'nodes':mem_nodes}
     return render_template('mem_statistics.html', data_to_render = data_to_render)
 

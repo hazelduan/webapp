@@ -1,7 +1,7 @@
 from flask import render_template, url_for, request
 from app import memapp, memcache, scheduler
 from flask import json
-from app import db, MemcacheConfig, MemcacheStatistics
+from app import db, MemcacheConfig, MemcacheStatistics, CUR_NODE
 import datetime
 import sys
 import os
@@ -125,6 +125,7 @@ def Statistics():
 def store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate) -> None:
     with memapp.app_context():
         mem_statistics = MemcacheStatistics()
+        mem_statistics.mem_node = CUR_NODE
         mem_statistics.time = cur_time
         mem_statistics.num_of_items = number_of_items
         mem_statistics.total_size_of_items = total_size
@@ -134,8 +135,10 @@ def store_statistics_in_database(cur_time, number_of_items, total_size, request_
         db.session.add(mem_statistics)
         db.session.commit()
 
+ 
+
 # scheduler to store statistics in database
 scheduler.add_job(func=Statistics, trigger='interval', seconds=5, id='job1')
-# scheduler.start()
+scheduler.start()
 
 
