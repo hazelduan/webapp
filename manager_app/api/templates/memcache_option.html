@@ -3,10 +3,7 @@
 {% block title %}Memcache options{% endblock %}
 
 {% block content %}
-  <form action="{{ url_for('main')}}" method="get">
-    <button>Home</button>
-  </form>
-  
+
   <div>
     <p>
       <b>Show all the keys in memcache :  </b>
@@ -15,7 +12,7 @@
     </p>
     
     <p id="tab"></p>
-    
+   
   </div>
   <div>
     <form action="{{url_for('MemcacheOption')}}" method='post'>
@@ -37,13 +34,13 @@
         <input class="button" type="submit" value="upload" style="text-align: center;"/>
     </form>
   </div>
+
   <div>
     <br>
     <form action="{{url_for('CacheClear')}}" method="post">
         <input class="button" type="submit" value="Cache clear" />
     </form>
-  </div> -->
-
+  </div>
 
 <script type="text/javascript">
     function f1(){
@@ -56,5 +53,6 @@
         </ul>";
     }
 </script>
-{% endblock %}
 
+
+{% endblock %}
