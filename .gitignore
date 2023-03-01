@@ -1,2 +1,8 @@
 database/password.py
 database/database_credential.py
+
+#dependencies
+venv
+
+#misc
+__pycache__

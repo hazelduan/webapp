@@ -215,7 +215,7 @@ def DeleteAllKeys():
 
 @webapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
-    # should configure from manager app
+    # should configure from manager app, temporarily won't delete it as a backup
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
