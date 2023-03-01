@@ -1,6 +1,4 @@
-#!../venv/bin/python
-from app import managerapp
-
-managerapp.run('0.0.0.0',5009,debug=False)
+from api import manageapp
 
 
+manageapp.run('0.0.0.0',8080,debug=True)
