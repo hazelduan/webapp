@@ -2,11 +2,16 @@
 cd frontend
 echo "before go through"
 python run.py & 
-echo "go through to memcache"
-cd ..
-cd memcache
-python run.py &
 echo "manage app"
 cd ..
-cd manage_app
-python run.py
+cd manager_app
+python run.py &
+cd react-manage-app
+yarn start &
+cd ..
+cd ..
+cd memcache
+for i in {5001..5008}
+do
+    flask run --port $i &
+done

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %} Statistics {% endblock %}
+
+{% block content %}
+
+<table>
+  <caption> Memcache statistics over the past 30 minutes</caption>
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>Time</th>
+        <th>Number of Items</th>
+        <th>Total Size of Items (KB)</th>
+        <th>Number of Request Served</th>
+        <th>Miss Rate</th>
+        <th>Hit Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <script type="text/javascript">
+        var data_to_render = JSON.stringify(data_to_render);
+        let nodes = data_to_render.nodes;
+        let time = data_to_render.time;
+        let num_of_items = data_to_render.num_of_items;
+        let total_size_of_items = data_to_render.total_size_of_items;
+        let number_of_request_served = data_to_render.number_of_request_served;
+        let miss_rate = data_to_render.miss_rate;
+        let hit_rate = data_to_render.hit_rate;
+
+        
+        for (let i = 0; i < data_to_render.number_of_rows; i++) {
+          document.write("<tr>");
+          document.write("<td>" + nodes[i] + "</td>");
+          document.write("<td>" + time[i] + "</td>");
+          document.write("<td>" + num_of_items[i] + "</td>");
+          document.write("<td>" + total_size_of_items[i] + "</td>");
+          document.write("<td>" + number_of_request_served[i] + "</td>");
+          document.write("<td>" + miss_rate[i] + "</td>");
+          document.write("<td>" + hit_rate[i] + "</td>");
+          document.write("</tr>");
+        }
+      </script>
+    </tbody>
+</table>
+
+<p>
+  This table includes all memcache over the past 30 minutes, where the time axis is in 1 minute increments. Data fetched from database.
+</p>
+{% endblock %}
