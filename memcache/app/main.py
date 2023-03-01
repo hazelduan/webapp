@@ -1,7 +1,7 @@
 from flask import render_template, url_for, request
 from app import memapp, memcache, scheduler
 from flask import json
-from app import db, MemcacheConfig, MemcacheStatistics, CUR_NODE
+from app import db, MemcacheConfig, MemcacheStatistics, CUR_NODE, cw_api
 import datetime
 import sys
 import os
@@ -98,6 +98,8 @@ def InvalidateKey():
 
 @memapp.route('/display_keys', methods=['GET'])
 def DisplayKeys():
+    # res = cw_api.getMetricData(CUR_NODE, 60)
+    # print("res from get data ",  res)
     return render_template('display_keys.html', memcache=memcache)
 
 @memapp.route('/statistics', methods=['GET'])
@@ -134,6 +136,10 @@ def store_statistics_in_database(cur_time, number_of_items, total_size, request_
         mem_statistics.hit_rate = hit_rate
         db.session.add(mem_statistics)
         db.session.commit()
+    
+    # upload to the cloud watch
+    # res = cw_api.putMeticData(CUR_NODE, miss_rate)
+    # print("res from put data ",  res)
 
  
 

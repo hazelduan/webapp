@@ -3,10 +3,12 @@ from flask_sqlalchemy import SQLAlchemy
 from collections import OrderedDict
 import random
 from flask_apscheduler import APScheduler
+import boto3
 import sys
 sys.path.append('..')
 sys.path.append('..')
 from database import database_credential
+from tools import cloudwatchAPI
 
 global memcache
 
@@ -161,6 +163,8 @@ with memapp.app_context():
     )
     db.session.add(init_memstatistics)
     db.session.commit()
+
+cw_api = cloudwatchAPI.cloudwatchAPI()
 from app import main
 
 
