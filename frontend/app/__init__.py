@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 import boto3
+import mysql.connector
 import sys
 sys.path.append('..')
 sys.path.append('..')
@@ -52,6 +53,18 @@ if response['KeyCount'] != 0:
     for obj in response["Contents"]:
         print(obj)
 
+
+# clear the memcache statistics
+# the reason why do this here is that there will be time gap among multiple nodes when start,
+# and delete database needs time, may trigger synchronization problems
+mydb = mysql.connector.connect(
+        host=database_credential.db_host,
+        user=database_credential.db_user,
+        passwd=database_credential.db_password,
+    )
+my_cursor = mydb.cursor()
+my_cursor.execute(("USE {};".format(database_credential.db_name)))
+my_cursor.execute(("TRUNCATE memcache_statistics;"))
 from app import main
 
 

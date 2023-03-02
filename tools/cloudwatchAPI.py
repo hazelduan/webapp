@@ -17,7 +17,6 @@ class cloudwatchAPI():
                             'Value': str(node)
                         },
                     ],
-                    'Timestamp': datetime.datetime.now(),
                     'Value': data,
                     'Unit': 'Percent'
                 },
@@ -27,7 +26,6 @@ class cloudwatchAPI():
         return response
     
     def getMetricData(self, node, seconds):
-        CurTime = datetime.datetime.now()
         response = self.client.get_metric_statistics(
             Namespace='memcache',
             MetricName='miss_rate',
@@ -36,8 +34,8 @@ class cloudwatchAPI():
                 'Value': str(node)
             }],
 
-            StartTime = datetime.datetime(2023,2,28),
-            EndTime = datetime.datetime(2023,3,1),
+            StartTime = datetime.datetime.utcnow() - datetime.timedelta(seconds=seconds),
+            EndTime = datetime.datetime.utcnow(),
             Period = 60,
             Statistics = ['Maximum'],
             Unit = 'Percent'

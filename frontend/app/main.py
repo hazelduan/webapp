@@ -247,15 +247,15 @@ def CacheClear():
 
 @webapp.route('/memcache_statistics', methods=['GET'])
 def MemStatistics():
+
     mydb = mysql.connector.connect(
         host=database_credential.db_host,
         user=database_credential.db_user,
         passwd=database_credential.db_password,
     )
     my_cursor = mydb.cursor()
-    my_cursor.execute(("use {};".format(database_credential.db_name)))
-    # my_cursor.execute(("SELECT * FROM MEMCACHE_STATISTICS"))
-    my_cursor.execute(("SELECT * FROM memcache_statistics ORDER BY id DESC LIMIT 120"))
+    my_cursor.execute(("USE {};".format(database_credential.db_name)))
+    my_cursor.execute(("SELECT * FROM memcache_statistics ORDER BY id DESC LIMIT 30;"))
     
     time = []
     number_of_items = []
