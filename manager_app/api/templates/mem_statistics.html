@@ -18,9 +18,10 @@
       </tr>
     </thead>
     <tbody>
-      
+       
       <script type="text/javascript">
-        var data_to_render = JSON.stringify(data_to_render);
+        // var data_to_render = JSON.stringify(data_to_render);
+        data_to_render = {{ data_to_render|tojson }};
         let nodes = data_to_render.nodes;
         let time = data_to_render.time;
         let num_of_items = data_to_render.num_of_items;

@@ -98,9 +98,13 @@ def InvalidateKey():
 
 @memapp.route('/display_keys', methods=['GET'])
 def DisplayKeys():
-    # res = cw_api.getMetricData(CUR_NODE, 60)
-    # print("res from get data ",  res)
-    return render_template('display_keys.html', memcache=memcache)
+    res = cw_api.getMetricData(CUR_NODE, 60)
+    print(res)
+    if len(res['Datapoints']) > 0:
+        for metric in res['Datapoints']:
+            print("Maximum: ", metric['Maximum'])
+    
+    return render_template('display_keys.html', memcache=memcache, miss_rate=metric['Maximum'])
 
 @memapp.route('/statistics', methods=['GET'])
 def Statistics():
@@ -139,7 +143,6 @@ def store_statistics_in_database(cur_time, number_of_items, total_size, request_
     
     # upload to the cloud watch
     # res = cw_api.putMeticData(CUR_NODE, miss_rate)
-    # print("res from put data ",  res)
 
  
 

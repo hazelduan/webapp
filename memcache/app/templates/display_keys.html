@@ -7,5 +7,6 @@
             {% for keys in memcache.keys() %}
             <li>{{keys}}</li>
             {% endfor %}
+            <h3>maximum miss rate  {{miss_rate}}</h3>
         </body>
     </html>
