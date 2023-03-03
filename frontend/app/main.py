@@ -16,12 +16,18 @@ from app import db, Images, BUCKET_NAME, s3, s3_resource
 from pathlib import Path
 import base64
 import hashlib
-
+import signal
 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+def signal_handler(sig, frame):
+    print('You pressed ctrl+c !')
+    StopScheduler()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 @webapp.route('/')
@@ -287,4 +293,14 @@ def MemStatistics():
                         'hit_rate':hit_rate,
                         'nodes':mem_nodes}
     return render_template('mem_statistics.html', data_to_render = data_to_render)
+
+@webapp.route('/stop_scheduler', methods=['GET'])
+def StopScheduler():
+    # retrieve from manager app
+    active_node = 8
+    for mem_port in range(active_node):
+        try:
+            res = requests.get(backend_base_url + str(mem_port + base_port) + '/stop_scheduler')
+        except requests.exceptions.ConnectionError:
+            print(f'port {mem_port + base_port} offline')
 
