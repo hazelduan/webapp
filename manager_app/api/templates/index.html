@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %} Statistics {% endblock %}
+
+{% block content %}
+
+  <div>
+    <form action="{{ url_for('MemcacheOption')}}">
+        <button>Memcache Options</button>
+    </form>
+  </div>
+  <div>
+    <form action="{{ url_for('MemStatistics')}}">
+      <button>Memcache Statistics</button>
+    </form>
+  </div>
+  <div>
+    <form action="{{ url_for('ResizeMemcachePool')}}">
+    <button>Resize Memcache Pool</button>
+    </form>
+  </div>
+  <div>
+    <form action="{{ url_for('DeleteAllData')}}">
+    <button>Delete All App Data</button>
+    </form>
+  </div>
+
+  {% endblock %}

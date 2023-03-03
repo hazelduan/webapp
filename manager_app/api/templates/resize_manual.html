@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %} Resize the memcache pool manually {% endblock %}
+
+{% block content %}
+
+<!-- already move to resize.html page, just a backup -->
+
+<div>
+    <p><b>Configure memcache nodes:</b></p>
+        <label>Current node number: {{current_node}} nodes</label>
+
+</div>
+<div>
+    <form action="{{url_for('ResizeMemcacheManual')}}" method='post'>
+        <p>
+            <label>
+                Manually growing the pool size by one node and shrinking the pool size by one node:
+            </label>
+            <input type="number" step="1" id="new_node_number" min="1" max="8" name="new_node_number"/>
+        </p>
+        <button onclick="resizeIncrement()">Increment</button>
+        <button onclick="resizeDecrement()">Decrement</button>
+        <br>
+        <input class="button" type="submit" value="upload" style="text-align: center;"/>
+    </form>
+</div>
+
+<script>
+    function resizeIncrement() {
+    document.getElementById("new_node_number").stepUp(1);
+    }
+</script>
+
+<script>
+    function resizeDecrement() {
+    document.getElementById("new_node_number").stepDown(1);
+    }
+</script>
+
+{% endblock %}
