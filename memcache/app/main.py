@@ -98,13 +98,11 @@ def InvalidateKey():
 
 @memapp.route('/display_keys', methods=['GET'])
 def DisplayKeys():
-    res = cw_api.getMetricData(CUR_NODE, 60)
-    print(res)
-    if len(res['Datapoints']) > 0:
-        for metric in res['Datapoints']:
-            print("Maximum: ", metric['Maximum'])
+    res = cw_api.getAverageMetric(8, 60)
+
+    print("Average: ", res)
     
-    return render_template('display_keys.html', memcache=memcache, miss_rate=metric['Maximum'])
+    return render_template('display_keys.html', memcache=memcache, miss_rate=res)
 
 @memapp.route('/statistics', methods=['GET'])
 def Statistics():
@@ -142,9 +140,18 @@ def store_statistics_in_database(cur_time, number_of_items, total_size, request_
         db.session.commit()
     
     # upload to the cloud watch
-    # res = cw_api.putMeticData(CUR_NODE, miss_rate)
+    res = cw_api.putMeticData(CUR_NODE, miss_rate)
 
- 
+@memapp.route('/stop_scheduler', methods=['GET'])
+def StopScheduler():
+    scheduler.pause_job('job1')
+    return 'stop scheduler'
+
+
+@memapp.route('/start_scheduler', methods=['GET'])
+def StartScheduler():
+    scheduler.resume_job('job1')
+    return 'start scheduler'
 
 # scheduler to store statistics in database
 scheduler.add_job(func=Statistics, trigger='interval', seconds=5, id='job1')

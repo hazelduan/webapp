@@ -37,8 +37,22 @@ class cloudwatchAPI():
             StartTime = datetime.datetime.utcnow() - datetime.timedelta(seconds=seconds),
             EndTime = datetime.datetime.utcnow(),
             Period = 60,
-            Statistics = ['Maximum'],
+            Statistics = ['Average'],
             Unit = 'Percent'
         )
 
         return response
+
+
+    def getAverageMetric(self, active_node, seconds):
+        miss_rates = []
+        for node in range(1, active_node+1):
+            res = self.getMetricData(node, seconds)
+            if len(res['Datapoints']) > 0:
+                for miss_rate in res['Datapoints']:
+                    miss_rates.append(miss_rate['Average'])
+        
+        if len(miss_rates) > 0:
+            return (sum(miss_rates) / len(miss_rates))
+        
+        return 0

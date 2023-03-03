@@ -29,6 +29,7 @@ CUR_PORT = -1
 for arg in sys.argv:
     if port_flag == 1:
         CUR_PORT = arg
+        break
     if arg in ['--port']:
         port_flag = 1
         continue
