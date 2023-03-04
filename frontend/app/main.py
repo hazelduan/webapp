@@ -79,7 +79,10 @@ def UploadImage():
     mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
-    active_node = 8 
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node'] 
+    print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
     response = requests.get(backend_base_url + str(mem_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
@@ -144,7 +147,10 @@ def ImageLookupForTest(key_value):
     mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
-    active_node = 8 
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node'] 
+    print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
 
     response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
