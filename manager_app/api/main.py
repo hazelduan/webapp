@@ -136,7 +136,7 @@ def ResizeMemcacheManual():
             for i in range(max_node):
                 response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
             jsonResponse = response.json()
-            if jsonResponse['success'] == True:
+            if jsonResponse['success'] == 'true':
                 current_node_num = new_node_num
 
                 mydb = mysql.connector.connect(
@@ -156,6 +156,8 @@ def ResizeMemcacheManual():
                     image_content = base64.b64encode(obj['Body'].read()).decode()# get the image content from s3
                     # put the key into memcache and store the images into the memcache again
                     requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+    
+    #
     return render_template('resize_manual.html', 
                             current_node = current_node_num,)
 
@@ -172,6 +174,7 @@ def ResizeMemcacheAuto():
     response = request.get(backend_base_url + str(5020) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
     jsonResponse = response.json()
     current_node_num = jsonResponse['active_node']
+    # reallocate the keys in memcache
     return render_template('resize_auto.html',
                             current_node = current_node_num,)
 

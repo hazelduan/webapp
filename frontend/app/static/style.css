@@ -36,7 +36,7 @@ div {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 40px;
+    margin: 10px;
 }
 input[type="file"]{
     padding:10px;
@@ -98,7 +98,7 @@ td, th {
 }
 
 th {
-    background-color: rgb(78, 71, 162);
+    background-color: rgb(71, 85, 162);
     color: white;
 }
 
@@ -107,7 +107,7 @@ td {
 }
 
 tr:nth-child(even) td {
-    background-color: rgb(149, 145, 230);
+    background-color: rgb(145, 168, 230);
 }
 
 tr:nth-child(odd) td {
