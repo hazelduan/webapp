@@ -4,7 +4,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import base_path, backend_base_url, base_port
+from configuration import base_path, backend_base_url, base_port, auto_scaler_port
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -131,15 +131,15 @@ def ResizeMemcacheManual():
     global current_node_num
     max_node = 8
     if request.method == 'POST':
-        new_node_num = request.form['new_node_number']
-        if new_node_num != current_node_num:
-            for i in range(max_node):
+        new_node_num = int(request.form['new_node_number']) #get the new node number from the form
+        if new_node_num != current_node_num: #reallocate the keys in memcache nodes
+            for i in range(current_node_num):
                 response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
             jsonResponse = response.json()
             if jsonResponse['success'] == 'true':
                 current_node_num = new_node_num
-
-                mydb = mysql.connector.connect(
+                #fetch key from database
+                mydb = mysql.connector.connect( 
                     host=database_credential.db_host,
                     user=database_credential.db_user,
                     passwd=database_credential.db_password,
@@ -150,14 +150,20 @@ def ResizeMemcacheManual():
                 for db_image in my_cursor:
                     image_key = db_image[1]
                     image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
-                    mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
-                    mem_port = mem_partition % current_node_num + base_port # get the port number of the key again
-                    obj = s3.get_object(Bucket=BUCKET_NAME, Key=image_key)
+                    print("md5 key is " + image_key_md5)
+                    key_partition = int(image_key_md5[0], 16)
+                    mem_port = key_partition % current_node_num + base_port 
+                    obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2]) #
                     image_content = base64.b64encode(obj['Body'].read()).decode()# get the image content from s3
-                    # put the key into memcache and store the images into the memcache again
-                    requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-    
-    #
+                    # put the image key and content into the memcache
+                    response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+                    jsonResponse = response.json()
+                    if jsonResponse['success'] == 'true':
+                        print("put image into memcache successfully")
+                    else:
+                        print("put image into memcache failed")
+            else:
+                print("cache clear failed")
     return render_template('resize_manual.html', 
                             current_node = current_node_num,)
 
@@ -166,23 +172,66 @@ def ResizeMemcacheAuto():
     # should configure from manager app
     global current_node_num
     max_node = 8
+    min_node = 1
+
     if request.method == 'POST':
-        Max_Miss_Rate_threshold = request.form['Max_Miss_Rate_threshold'] 
+        Max_Miss_Rate_threshold = request.form['Max_Miss_Rate_threshold']
         Min_Miss_Rate_threshold = request.form['Min_Miss_Rate_threshold']
         expandRatio = request.form['expandRatio']
         shrinkRatio = request.form['shrinkRatio']
-    response = request.get(backend_base_url + str(5020) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
+    response = request.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
     jsonResponse = response.json()
-    current_node_num = jsonResponse['active_node']
-    # reallocate the keys in memcache
+    active_node = int(jsonResponse['active_node'])
+    if active_node > max_node or active_node < min_node:
+        return {'error': 'The number of nodes exceeds the range.'}
+    else:
+        if active_node != current_node_num:
+            for i in range(current_node_num):
+                response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+            jsonResponse = response.json()
+            if jsonResponse['success'] == 'true':
+                current_node_num = active_node
+                #fetch key from database
+                mydb = mysql.connector.connect( 
+                    host=database_credential.db_host,
+                    user=database_credential.db_user,
+                    passwd=database_credential.db_password,
+                )
+                my_cursor = mydb.cursor()
+                my_cursor.execute(("use {};".format(database_credential.db_name)))
+                my_cursor.execute(("SELECT * FROM images ORDER BY id"))
+                for db_image in my_cursor:
+                    image_key = db_image[1]
+                    image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+                    print("md5 key is " + image_key_md5)
+                    key_partition = int(image_key_md5[0], 16)
+                    mem_port = key_partition % current_node_num + base_port 
+                    obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2])
+                    image_content = base64.b64encode(obj['Body'].read()).decode()
+                    response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+                    jsonResponse = response.json()
+                    if jsonResponse['success'] == 'true':
+                        print("put image into memcache successfully")
+                    else:
+                        print("put image into memcache failed")
+            else:
+                print("cache clear failed")
+
     return render_template('resize_auto.html',
-                            current_node = current_node_num,)
+                            current_node = current_node_num)
 
 @manageapp.route('/api/update_nodes', methods=['GET'])
 def update_nodes():
     global current_node_num
     current_node_num = request.form('active_node')
     return {'active_node': current_node_num}
+
+@manageapp.route('/get',methods=['GET'])
+def get():
+    active_node = current_node_num
+
+    return {'active_node': active_node}
+
 
 @manageapp.route('/delete_all_application_data', methods=['GET'])
 def DeleteAllData():
