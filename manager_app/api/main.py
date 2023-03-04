@@ -121,12 +121,9 @@ def MemStatistics():
     return render_template('mem_statistics.html', data_to_render = data_to_render)
 
 
-@manageapp.route('/resize', methods=['GET', 'POST'])
+@manageapp.route('/resize', methods=['GET'])
 def ResizeMemcachePool():
-    if 'Manual Resize' in request.form:
-        return redirect(url_for('ResizeMemcacheManual'))
-    elif 'Auto Resize' in request.form:
-        return redirect(url_for('ResizeMemcacheAuto'))
+    return render_template('resize.html')
 
 @manageapp.route('/resize_manual', methods=['GET', 'POST'])
 def ResizeMemcacheManual():
@@ -159,7 +156,7 @@ def ResizeMemcacheManual():
                     image_content = base64.b64encode(obj['Body'].read()).decode()# get the image content from s3
                     # put the key into memcache and store the images into the memcache again
                     requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-    return render_template('resize.html', 
+    return render_template('resize_manual.html', 
                             current_node = current_node_num,)
 
 @manageapp.route('/resize_auto', methods=['GET','POST'])
@@ -172,8 +169,17 @@ def ResizeMemcacheAuto():
         Min_Miss_Rate_threshold = request.form['Min_Miss_Rate_threshold']
         expandRatio = request.form['expandRatio']
         shrinkRatio = request.form['shrinkRatio']
-    return render_template('resize.html',
+    response = request.get(backend_base_url + str(5020) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
+    jsonResponse = response.json()
+    current_node_num = jsonResponse['active_node']
+    return render_template('resize_auto.html',
                             current_node = current_node_num,)
+
+@manageapp.route('/api/update_nodes', methods=['GET'])
+def update_nodes():
+    global current_node_num
+    current_node_num = request.form('active_node')
+    return {'active_node': current_node_num}
 
 @manageapp.route('/delete_all_application_data', methods=['GET'])
 def DeleteAllData():
@@ -181,8 +187,9 @@ def DeleteAllData():
     # delete all data in memcache
     for i in range(active_node):
         response_memcache = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
-
-    if response_memcache.json()['success'] == True:
+    jsonResponse = response_memcache.json()
+    print(jsonResponse['success'])
+    if jsonResponse['success'] == 'true':
         # delete all data in database
         mydb = mysql.connector.connect(
             host=database_credential.db_host,
@@ -195,7 +202,8 @@ def DeleteAllData():
         mydb.commit()
         #if database is empty, delete all data in s3
         db_response = my_cursor.execute(("SELECT * FROM images"))
-        if db_response == 'Empty set':
+        print(db_response)
+        if db_response == None:
             bucket = s3_resource.Bucket(BUCKET_NAME)
             bucket.objects.all().delete()
             return {'success' : True}

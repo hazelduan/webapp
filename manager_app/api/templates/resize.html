@@ -5,6 +5,18 @@
 {% block content %}
 
 <div>
+    <form action="{{ url_for('ResizeMemcacheManual')}}">
+      <button>Manual Resize</button>
+    </form>
+  </div>
+
+  <div>
+    <form action="{{ url_for('ResizeMemcacheAuto')}}">
+      <button>Auto Resize</button>
+    </form>
+  </div>
+
+<!-- <div>
     <p><b>Configure memcache nodes:</b></p>
     <label>Current node number: {{current_node}} nodes</label>
 </div>
@@ -47,6 +59,6 @@
         </p>
         <input class="button" type="submit" value="Auto Resize" name="Auto Resize"/>
     </form>
-</div>
+</div> -->
 
 {% endblock %}

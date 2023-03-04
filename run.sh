@@ -6,9 +6,6 @@ echo "manage app"
 cd ..
 cd manager_app
 python run.py &
-cd react-manage-app
-yarn start &
-cd ..
 cd ..
 cd memcache
 for i in {5001..5008}
