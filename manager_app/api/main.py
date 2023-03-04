@@ -106,8 +106,8 @@ def MemStatistics():
         hit_rate.append(db_statis[6])
         mem_nodes.append(db_statis[7])
         counter += 1
-    print(type(time[2]))
-    print(time[0])
+    # print(type(time[2]))
+    # print(time[0])
 
     data_to_render = {'number_of_rows': counter, 
                         'time':time, 
@@ -175,7 +175,7 @@ def ResizeMemcacheAuto():
     return render_template('resize.html',
                             current_node = current_node_num,)
 
-@manageapp.route('/delete_all_application_data', methods=['POST'])
+@manageapp.route('/delete_all_application_data', methods=['GET'])
 def DeleteAllData():
     active_node = current_node_num
     # delete all data in memcache
