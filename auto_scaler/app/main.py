@@ -55,5 +55,5 @@ def UpdateParams():
     return {'success' : 'true'}
 
 # scheduler to store statistics in database
-scheduler.add_job(func=checkMissRate, trigger='interval', seconds=30, id='job1')
+scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')
 scheduler.start()
