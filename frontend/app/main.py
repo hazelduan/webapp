@@ -4,7 +4,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import base_path, file_system_path, backend_base_url, base_port
+from configuration import base_path, file_system_path, backend_base_url, base_port, manager_port
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -79,7 +79,10 @@ def UploadImage():
     mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
-    active_node = 8 
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node'] 
+    print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
     response = requests.get(backend_base_url + str(mem_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
@@ -108,7 +111,10 @@ def ImageLookup():
         mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
         # number of active node should be retrieve from manage app
         # requests.get(url_for_manage_app, ..)
-        active_node = 8 
+        active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+        jsonNodeResponse = active_node_response.json()
+        active_node = jsonNodeResponse['active_node'] 
+        print('the active node is:' + str(active_node))
         mem_port = mem_partition % active_node + base_port
 
         response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
@@ -116,7 +122,7 @@ def ImageLookup():
         image_content = jsonResponse['image_content']
         
         if image_content != 'not found':
-            print("Look up through memcache")
+            print("Look up through memcache port" + str(mem_port))
             return render_template("display_image.html", image_content=image_content, image_key=image_key)
         else:
             ## Interact with database
@@ -141,7 +147,10 @@ def ImageLookupForTest(key_value):
     mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
-    active_node = 8 
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node'] 
+    print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
 
     response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})

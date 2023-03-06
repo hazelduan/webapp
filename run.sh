@@ -42,11 +42,7 @@ echo ${PID3}
 cd ..
 cd ..
 cd memcache
-#for i in {5001..5008}
-#do
-#    flask run --port $i &
-#    PID${i}=$!
-#done
+
 flask run --port 5001 &
 PID5001=$!
 echo ${PID5001}

@@ -1,0 +1,121 @@
+body {
+    /* background-color: rgba(220,38,38,0.2); */
+    background: url(./images/background.jpg) no-repeat center center;
+    background-size: cover;
+    background-attachment: fixed;
+    /* opacity:0.8; */
+}
+button {
+    border: 2px solid #6659bf;
+    cursor: pointer;
+    appearance: none;
+    background-color: inherit;
+    transition-duration: 0.4s;
+    padding: 16px 32px;
+    text-align: center;
+    color:black;
+}
+button:hover {
+    background-color: #6659bf;
+    color: white;
+}
+.button {
+    border: 2px solid #6659bf;
+    cursor: pointer;
+    appearance: none;
+    background-color: inherit;
+    transition-duration: 0.4s;
+    padding: 12px 20px;
+    text-align: center;
+    color:black;
+}
+.button:hover {
+    background-color: #6659bf;
+    color: white;
+}
+div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 5px;
+}
+input[type="file"]{
+    padding:10px;
+    border:2px solid #6659bf;
+    outline :none;
+    border-radius:5px;
+    font-size:24px;
+} */
+
+.container {
+position: relative;
+width: 60%;
+height: 20px;
+}
+
+.image {
+display: block;
+width: 40%;
+height: auto;
+align-self: center;
+}
+
+.overlay {
+position: absolute;
+top: 0;
+bottom: 0;
+left: 0;
+right: 0;
+height: 100%;
+width: 100%;
+opacity: 0;
+transition: .5s ease;
+background-color: #008CBA;
+}
+
+.container:hover .overlay {
+opacity: 1;
+}
+
+.text {
+color: white;
+font-size: 20px;
+position: absolute;
+left: 50%;
+top:auto;
+transform: translate(-50%, -50%);
+-ms-transform: translate(-50%, -50%);
+}
+table {
+    border-collapse: collapse;
+    border: 2px solid rgb(200,200,200);
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+}
+  
+td, th {
+    border: 1px solid rgb(190,190,190);
+    padding: 10px 20px;
+}
+
+th {
+    background-color: rgb(78, 71, 162);
+    color: white;
+}
+
+td {
+    text-align: center;
+}
+
+tr:nth-child(even) td {
+    background-color: rgb(149, 145, 230);
+}
+
+tr:nth-child(odd) td {
+    background-color: rgb(251, 251, 251);
+}
+
+caption {
+    padding: 10px;
+}
+  
