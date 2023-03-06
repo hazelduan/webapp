@@ -162,8 +162,23 @@ def ResizeMemcacheManual():
                         print("put image into memcache successfully")
                     else:
                         print("put image into memcache failed")
+                # newly added, to stop and to start memcache node
+                for node in range(current_node_num):
+                    try:
+                        res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
+                    except requests.exceptions.ConnectionError:
+                        print("Can't connect to port " + str(node + base_port))
+                if current_node_num < 8:
+                    for node in range(current_node_num, 8, 1):
+                        try:
+                            res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
+                        except requests.exceptions.ConnectionError:
+                            print("Can't connect to port " + str(node + base_port))
             else:
                 print("cache clear failed")
+
+
+        # res = requests.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': -1, 'Min_Miss_Rate_threshold':-1, 'expandRatio':-1, 'shrinkRatio':-1})
     return render_template('resize_manual.html', 
                             current_node = current_node_num,)
 
@@ -171,51 +186,56 @@ def ResizeMemcacheManual():
 def ResizeMemcacheAuto():
     # should configure from manager app
     global current_node_num
-    max_node = 8
-    min_node = 1
-
     if request.method == 'POST':
         Max_Miss_Rate_threshold = request.form['Max_Miss_Rate_threshold']
+        if Max_Miss_Rate_threshold == '' or float(Max_Miss_Rate_threshold) < 0:
+            return "Please enter valid number for Max_Miss_Rate_threshold"
         Min_Miss_Rate_threshold = request.form['Min_Miss_Rate_threshold']
+        if Min_Miss_Rate_threshold == '' or float(Min_Miss_Rate_threshold) < 0:
+            return "Please enter valid number for Min_Miss_Rate_threshold"
         expandRatio = request.form['expandRatio']
+        if expandRatio == '' or float(expandRatio) < 0:
+            return "Please enter valid number for expandRatio"
         shrinkRatio = request.form['shrinkRatio']
-    response = request.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
-    jsonResponse = response.json()
-    active_node = int(jsonResponse['active_node'])
-    if active_node > max_node or active_node < min_node:
-        return {'error': 'The number of nodes exceeds the range.'}
-    else:
-        if active_node != current_node_num:
-            for i in range(current_node_num):
-                response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
-            jsonResponse = response.json()
-            if jsonResponse['success'] == 'true':
-                current_node_num = active_node
-                #fetch key from database
-                mydb = mysql.connector.connect( 
-                    host=database_credential.db_host,
-                    user=database_credential.db_user,
-                    passwd=database_credential.db_password,
-                )
-                my_cursor = mydb.cursor()
-                my_cursor.execute(("use {};".format(database_credential.db_name)))
-                my_cursor.execute(("SELECT * FROM images ORDER BY id"))
-                for db_image in my_cursor:
-                    image_key = db_image[1]
-                    image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
-                    print("md5 key is " + image_key_md5)
-                    key_partition = int(image_key_md5[0], 16)
-                    mem_port = key_partition % current_node_num + base_port 
-                    obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2])
-                    image_content = base64.b64encode(obj['Body'].read()).decode()
-                    response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-                    jsonResponse = response.json()
-                    if jsonResponse['success'] == 'true':
-                        print("put image into memcache successfully")
-                    else:
-                        print("put image into memcache failed")
-            else:
-                print("cache clear failed")
+        if shrinkRatio == '' or float(shrinkRatio) < 0:
+            return "Please enter valid number for shrinkRatio"
+        response = requests.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
+    # jsonResponse = response.json()
+    # active_node = int(jsonResponse['active_node'])
+    # if active_node > max_node or active_node < min_node:
+    #     return {'error': 'The number of nodes exceeds the range.'}
+    # else:
+    #     if active_node != current_node_num:
+    #         for i in range(current_node_num):
+    #             response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+    #         jsonResponse = response.json()
+    #         if jsonResponse['success'] == 'true':
+    #             current_node_num = active_node
+    #             #fetch key from database
+    #             mydb = mysql.connector.connect( 
+    #                 host=database_credential.db_host,
+    #                 user=database_credential.db_user,
+    #                 passwd=database_credential.db_password,
+    #             )
+    #             my_cursor = mydb.cursor()
+    #             my_cursor.execute(("use {};".format(database_credential.db_name)))
+    #             my_cursor.execute(("SELECT * FROM images ORDER BY id"))
+    #             for db_image in my_cursor:
+    #                 image_key = db_image[1]
+    #                 image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+    #                 print("md5 key is " + image_key_md5)
+    #                 key_partition = int(image_key_md5[0], 16)
+    #                 mem_port = key_partition % current_node_num + base_port 
+    #                 obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2])
+    #                 image_content = base64.b64encode(obj['Body'].read()).decode()
+    #                 response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+    #                 jsonResponse = response.json()
+    #                 if jsonResponse['success'] == 'true':
+    #                     print("put image into memcache successfully")
+    #                 else:
+    #                     print("put image into memcache failed")
+    #         else:
+    #             print("cache clear failed")
 
     return render_template('resize_auto.html',
                             current_node = current_node_num)
