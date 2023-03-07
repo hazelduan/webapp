@@ -7,6 +7,7 @@ sys.path.append('..')
 sys.path.append('..')
 from database import database_credential
 from pathlib import Path
+from tools import cloudwatchAPI
 
 
 manageapp = Flask(__name__)
@@ -43,6 +44,8 @@ response = s3.list_objects_v2(Bucket=BUCKET_NAME)
 if response['KeyCount'] != 0:
     for obj in response["Contents"]:
         print(obj)
+
+cw_api = cloudwatchAPI.cloudwatchAPI()
 
 from api import main
 

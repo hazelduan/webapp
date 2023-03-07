@@ -12,7 +12,7 @@ from api import manageapp
 from flask import json
 import requests
 import os
-from api import db, BUCKET_NAME, s3, s3_resource
+from api import db, BUCKET_NAME, s3, s3_resource, cw_api
 from pathlib import Path
 import hashlib
 import base64
@@ -127,7 +127,6 @@ def ResizeMemcachePool():
 def ResizeMemcacheManual():
     # should configure from manager app
     global current_node_num
-    max_node = 8
     if request.method == 'POST':
         new_node_num = int(request.form['new_node_number']) #get the new node number from the form
         if new_node_num != current_node_num: #reallocate the keys in memcache nodes
