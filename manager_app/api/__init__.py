@@ -8,7 +8,7 @@ sys.path.append('..')
 from database import database_credential
 from pathlib import Path
 from hashlib import md5
-from bintrees.rbtree import RBTree
+# from bintrees.rbtree import RBTree
 
 
 manageapp = Flask(__name__)

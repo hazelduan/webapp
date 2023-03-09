@@ -45,7 +45,7 @@ def put():
     if image_key in memcache.keys():
         memcache.pop(image_key)       # invalidate the key in memcache to update key-value
     
-    memcache[image_key] = str.encode(image_content)
+    memcache[image_key] = image_content
     
     response = {
         "success" : "true",
@@ -61,9 +61,9 @@ def get():
 
     if image_key in memcache:
         image_content = memcache[image_key]
-        decoded_image = image_content.decode()
+        # decoded_image = image_content.decode()
         memcache.cache_hit +=1
-        return {'image_content': decoded_image}
+        return {'image_content': image_content}
     
     memcache.cache_miss += 1
     return {'image_content': 'not found'}
@@ -74,12 +74,13 @@ def get_partition_images():
     images = list()
     image_keys = list()
     for key in list(memcache.keys()):
+        #print("content" + memcache[key])
         image_content = memcache[key]
         image_key_md5 = hashlib.md5(key.encode('utf-8')).hexdigest()
         # print("image_key_md5: ", image_key_md5)
         # print("image_key", image_key)
         if int(image_key_md5[0], 16) == int(partition):
-            image_keys.append(image_key)
+            image_keys.append(key)
             images.append(image_content)
     for image_key in list(image_keys):
         memcache.pop(image_key) #delete images in this partition from memcache

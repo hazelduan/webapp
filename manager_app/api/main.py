@@ -148,7 +148,7 @@ def ResizeMemcacheManual():
                 else:
                     print("Keys in this partition need to change node.")
                     #get the key from the old node and delete the key from old node
-                    response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': partition})
+                    response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
                     print("response of get_partition_images: " + str(response))
                     jsonResponse = response.json()
                     print("response of get_partition_images: " + str(jsonResponse))
