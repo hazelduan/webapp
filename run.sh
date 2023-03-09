@@ -8,7 +8,7 @@ function trap_ctrlc ()
     echo "Doing cleanup"
     kill -9 ${PID1}
     kill -9 ${PID2}
-    kill -9 ${PID3}
+    # kill -9 ${PID3}
     kill -9 ${PID5001}
     kill -9 ${PID5002}
     kill -9 ${PID5003}
@@ -33,16 +33,6 @@ echo "manage app"
 cd ..
 cd manager_app
 python run.py &
-<<<<<<< HEAD
-=======
-PID2=$!
-echo ${PID2}
-cd react-manage-app
-yarn start &
-PID3=$!
-echo ${PID3}
-cd ..
->>>>>>> 263ed80 (pulling code 2)
 cd ..
 cd memcache
 #for i in {5001..5008}

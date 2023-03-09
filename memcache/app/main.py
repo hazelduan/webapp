@@ -9,8 +9,9 @@ import logging
 import base64
 sys.path.append("..")
 sys.path.append("..")
-from configuration import base_path, file_system_path, backend_base_url
+from configuration import base_path, backend_base_url
 import datetime
+import hashlib
 
 
 logger = logging.getLogger()
@@ -66,6 +67,36 @@ def get():
     
     memcache.cache_miss += 1
     return {'image_content': 'not found'}
+
+@memapp.route('/get_partition_images',methods=['GET'])
+def get_partition_images():
+    partition = request.form.get('partition')
+    images = list()
+    image_keys = list()
+    for key in list(memcache.keys()):
+        image_content = memcache[key]
+        image_key_md5 = hashlib.md5(key.encode('utf-8')).hexdigest()
+        # print("image_key_md5: ", image_key_md5)
+        # print("image_key", image_key)
+        if int(image_key_md5[0], 16) == int(partition):
+            image_keys.append(image_key)
+            images.append(image_content)
+    for image_key in list(image_keys):
+        memcache.pop(image_key) #delete images in this partition from memcache
+
+    return {'image_keys': image_keys, 'images': images}
+    
+@memapp.route('/put_partition_images',methods=['GET'])
+def put_partition_images():
+    i = 0
+    images = request.form.get('images') #encoded image content
+    image_keys = request.form.get('image_keys')
+    for key in image_keys:
+        image_content = images[i]
+        memcache[key] = image_content
+        i += 1
+    return {'success': 'true'}
+
 
 
 @memapp.route('/memcache_option',methods=['GET', 'POST'])

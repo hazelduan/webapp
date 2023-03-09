@@ -8,12 +8,20 @@
     <p>
       <b>Show all the keys in memcache :  </b>
       <br>
-      <button onclick="f1()">show keys</button>
+      Key number: {{memcache | length}}
     </p>
-    
-    <p id="tab"></p>
-   
   </div>
+  <div>
+    <p>
+      <ul>
+        {% for key in memcache %}
+          <li>{{key}}</li>
+        {% endfor%}
+      </ul>
+    </p>
+  </div>
+    <!-- <p id="tab"></p> -->
+ 
   <div>
     <form action="{{url_for('MemcacheOption')}}" method='post'>
         <p><b>Configure parameters of memcache:</b></p>
@@ -42,7 +50,7 @@
     </form>
   </div>
 
-<script type="text/javascript">
+<!-- <script type="text/javascript">
     function f1(){
     var key = document.getElementById("tab");
     key.innerHTML= memcache.length + "keys\
@@ -52,7 +60,7 @@
             {% endfor%}\
         </ul>";
     }
-</script>
+</script> -->
 
 
 {% endblock %}

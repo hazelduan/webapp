@@ -187,7 +187,7 @@ def ImageLookupForTest(key_value):
     return resp
 
 
-@webapp.route('/api/list_keys_True', methods=['POST'])
+@webapp.route('/api/list_keys_True')
 def KeysDisplay():
     ## Show all the available keys in database
     db_images = Images.query.all()
@@ -221,43 +221,14 @@ def DeleteAllKeys():
     db.session.commit()
 
     ## Delete from all the memcache
-    active_node = 8
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node']
     for i in range(active_node):
         response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
 
-
-@webapp.route('/memcache_option', methods=['GET', 'POST'])
-def MemcacheOption():
-    # should configure from manager app, temporarily won't delete it as a backup
-    if request.method == 'POST':
-        capacity = request.form['capacity']
-        policy = request.form['policy']
-        response = requests.get(backend_base_url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
-        jsonResponse = response.json()
-
-    else:
-        response = requests.get(backend_base_url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
-        jsonResponse = response.json()
-    
-    replace_policy = jsonResponse['policy']
-    memcache_values = jsonResponse['memcache']
-    capacity = jsonResponse['capacity']
-    capacity = str(int(int(capacity) / 1024))
-    return render_template('memcache_option.html', 
-                            memcache=memcache_values,
-                            replace_policy=replace_policy,
-                            memsize = capacity
-    )
-
-@webapp.route('/cache_clear', methods=['POST'])
-def CacheClear():
-    active_node = 8
-    for i in range(active_node):
-        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
-    jsonResponse = response.json()
-    return {'success' : jsonResponse['success']}
 
 
 @webapp.route('/memcache_statistics', methods=['GET'])
@@ -306,7 +277,9 @@ def MemStatistics():
 @webapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
     # retrieve from manager app
-    active_node = 8
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node']
     for mem_port in range(active_node):
         try:
             res = requests.get(backend_base_url + str(mem_port + base_port) + '/stop_scheduler')
