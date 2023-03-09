@@ -22,11 +22,28 @@
   </div>
 
   <div>
+
     <form action="{{ url_for('MemStatistics')}}">
       <button>Memcache Statistics</button>
     </form>
+
+      <p>Current Active Memcache None : {{active_node}}</p>
+
   </div>
+
+
   <div>
     <img src="https://helloflask.com/totoro.gif" alt="chinchilla">
   </div>
 {% endblock %}
+
+<!-- <div>
+  <form action="{{ url_for('MemcacheOption')}}">
+      <button>Memcache Options</button>
+  </form>
+</div>
+<div>
+  <form action="{{ url_for('MemStatistics')}}">
+    <button>Memcache Statistics</button>
+  </form>
+</div> -->

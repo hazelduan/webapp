@@ -29,10 +29,11 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+active_node = 8
 
 @webapp.route('/')
 def main():
-    return render_template("index.html")
+    return render_template("index.html", active_node=active_node)
 
 @webapp.route('/upload_image')
 def upload_image():
@@ -230,49 +231,80 @@ def DeleteAllKeys():
     return {'success':jsonResponse['success']}
 
 
+# @webapp.route('/memcache_option', methods=['GET', 'POST'])
+# def MemcacheOption():
+#     # should configure from manager app, temporarily won't delete it as a backup
+#     if request.method == 'POST':
+#         capacity = request.form['capacity']
+#         policy = request.form['policy']
+#         response = requests.get(backend_base_url + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
+#         jsonResponse = response.json()
 
-@webapp.route('/memcache_statistics', methods=['GET'])
-def MemStatistics():
-
-    mydb = mysql.connector.connect(
-        host=database_credential.db_host,
-        user=database_credential.db_user,
-        passwd=database_credential.db_password,
-    )
-    my_cursor = mydb.cursor()
-    my_cursor.execute(("USE {};".format(database_credential.db_name)))
-    my_cursor.execute(("SELECT * FROM memcache_statistics ORDER BY id DESC LIMIT 30;"))
+#     else:
+#         response = requests.get(backend_base_url + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
+#         jsonResponse = response.json()
     
-    time = []
-    number_of_items = []
-    total_size_of_items = []
-    number_of_request_served = []
-    miss_rate = []
-    hit_rate = []
-    mem_nodes = []
-    print(my_cursor)
-    counter = 0
-    for db_statis in my_cursor:
-        time.append(str(db_statis[1]))
-        number_of_items.append(db_statis[2])
-        total_size_of_items.append(db_statis[3])
-        number_of_request_served.append(db_statis[4])
-        miss_rate.append(db_statis[5])
-        hit_rate.append(db_statis[6])
-        mem_nodes.append(db_statis[7])
-        counter += 1
-    print(type(time[2]))
-    print(time[0])
+#     replace_policy = jsonResponse['policy']
+#     memcache_values = jsonResponse['memcache']
+#     capacity = jsonResponse['capacity']
+#     capacity = str(int(int(capacity) / 1024))
+#     return render_template('memcache_option.html', 
+#                             memcache=memcache_values,
+#                             replace_policy=replace_policy,
+#                             memsize = capacity
+#     )
 
-    data_to_render = {'number_of_rows': counter, 
-                        'time':time, 
-                        'num_of_items':number_of_items, 
-                        'total_size_of_items':total_size_of_items, 
-                        'number_of_request_served':number_of_request_served, 
-                        'miss_rate':miss_rate, 
-                        'hit_rate':hit_rate,
-                        'nodes':mem_nodes}
-    return render_template('mem_statistics.html', data_to_render = data_to_render)
+@webapp.route('/cache_clear', methods=['POST'])
+def CacheClear():
+    active_node = 8
+    for i in range(active_node):
+        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+    jsonResponse = response.json()
+    return {'success' : jsonResponse['success']}
+
+
+# @webapp.route('/memcache_statistics', methods=['GET'])
+# def MemStatistics():
+
+#     mydb = mysql.connector.connect(
+#         host=database_credential.db_host,
+#         user=database_credential.db_user,
+#         passwd=database_credential.db_password,
+#     )
+#     my_cursor = mydb.cursor()
+#     my_cursor.execute(("USE {};".format(database_credential.db_name)))
+#     my_cursor.execute(("SELECT * FROM memcache_statistics ORDER BY id DESC LIMIT 30;"))
+    
+#     time = []
+#     number_of_items = []
+#     total_size_of_items = []
+#     number_of_request_served = []
+#     miss_rate = []
+#     hit_rate = []
+#     mem_nodes = []
+#     print(my_cursor)
+#     counter = 0
+#     for db_statis in my_cursor:
+#         time.append(str(db_statis[1]))
+#         number_of_items.append(db_statis[2])
+#         total_size_of_items.append(db_statis[3])
+#         number_of_request_served.append(db_statis[4])
+#         miss_rate.append(db_statis[5])
+#         hit_rate.append(db_statis[6])
+#         mem_nodes.append(db_statis[7])
+#         counter += 1
+#     print(type(time[2]))
+#     print(time[0])
+
+#     data_to_render = {'number_of_rows': counter, 
+#                         'time':time, 
+#                         'num_of_items':number_of_items, 
+#                         'total_size_of_items':total_size_of_items, 
+#                         'number_of_request_served':number_of_request_served, 
+#                         'miss_rate':miss_rate, 
+#                         'hit_rate':hit_rate,
+#                         'nodes':mem_nodes}
+#     return render_template('mem_statistics.html', data_to_render = data_to_render)
 
 @webapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
@@ -286,3 +318,9 @@ def StopScheduler():
         except requests.exceptions.ConnectionError:
             print(f'port {mem_port + base_port} offline')
 
+@webapp.route("/update_node", methods=['POST'])
+def UpdateNode():
+    global active_node
+    active_node = int(request.form['active_node'])
+
+    return redirect(url_for('main'))

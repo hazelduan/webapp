@@ -4,7 +4,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import base_path, backend_base_url, base_port, auto_scaler_port
+from configuration import base_path, backend_base_url, frontend_port, base_port, auto_scaler_port
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -12,7 +12,7 @@ from api import manageapp
 from flask import json
 import requests
 import os
-from api import db, BUCKET_NAME, s3, s3_resource
+from api import db, BUCKET_NAME, s3, s3_resource, cw_api
 from pathlib import Path
 import hashlib
 import base64
@@ -41,18 +41,20 @@ def get_time():
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
     # should configure from manager app
+
     global current_node_num
     active_node = current_node_num
+
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
-        for i in range(active_node):#all nodes should have the same comfiguration.
+        for i in range(current_node_num):#all nodes should have the same comfiguration.
             response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
         jsonResponse = response.json()
         #print("response of memoption: (post)" + str(jsonResponse))
 
     else:
-        for i in range(active_node):
+        for i in range(current_node_num):
             response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
         jsonResponse = response.json()
         #print("response of memoption: (get)" + str(jsonResponse))
@@ -70,8 +72,7 @@ def MemcacheOption():
 
 @manageapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
-    active_node = 8
-    for i in range(active_node):
+    for i in range(current_node_num):
         response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     #print("Response of cache clear:" + response)
     jsonResponse = response.json()
@@ -131,7 +132,9 @@ def ResizeMemcachePool():
 def ResizeMemcacheManual():
     # should configure from manager app
     global current_node_num
+
     #max_node = 8
+
     if request.method == 'POST':
         new_node_num = int(request.form['new_node_number']) #get the new node number from the form
         if new_node_num != current_node_num: #reallocate the keys in memcache nodes
@@ -177,6 +180,7 @@ def ResizeMemcacheManual():
 
 
         # res = requests.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': -1, 'Min_Miss_Rate_threshold':-1, 'expandRatio':-1, 'shrinkRatio':-1})
+
     return render_template('resize_manual.html', 
                             current_node = current_node_num,)
 
@@ -217,60 +221,29 @@ def ResizeMemcacheManual():
 def ResizeMemcacheAuto():
     # should configure from manager app
     global current_node_num
-    max_node = 8
-    min_node = 1
-
     if request.method == 'POST':
         Max_Miss_Rate_threshold = request.form['Max_Miss_Rate_threshold']
+        if Max_Miss_Rate_threshold == '' or float(Max_Miss_Rate_threshold) < 0:
+            return "Please enter valid number for Max_Miss_Rate_threshold"
         Min_Miss_Rate_threshold = request.form['Min_Miss_Rate_threshold']
+        if Min_Miss_Rate_threshold == '' or float(Min_Miss_Rate_threshold) < 0:
+            return "Please enter valid number for Min_Miss_Rate_threshold"
         expandRatio = request.form['expandRatio']
+        if expandRatio == '' or float(expandRatio) < 0:
+            return "Please enter valid number for expandRatio"
         shrinkRatio = request.form['shrinkRatio']
-    response = request.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 'expandRatio':expandRatio, 'shrinkRatio':shrinkRatio})
-    jsonResponse = response.json()
-    active_node = int(jsonResponse['active_node'])
-    if active_node > max_node or active_node < min_node:
-        return {'error': 'The number of nodes exceeds the range.'}
-    else:
-        if active_node != current_node_num:
-            for i in range(current_node_num):
-                response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
-            jsonResponse = response.json()
-            if jsonResponse['success'] == 'true':
-                current_node_num = active_node
-                #fetch key from database
-                mydb = mysql.connector.connect( 
-                    host=database_credential.db_host,
-                    user=database_credential.db_user,
-                    passwd=database_credential.db_password,
-                )
-                my_cursor = mydb.cursor()
-                my_cursor.execute(("use {};".format(database_credential.db_name)))
-                my_cursor.execute(("SELECT * FROM images ORDER BY id"))
-                for db_image in my_cursor:
-                    image_key = db_image[1]
-                    image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
-                    print("md5 key is " + image_key_md5)
-                    key_partition = int(image_key_md5[0], 16)
-                    mem_port = key_partition % current_node_num + base_port 
-                    obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2])
-                    image_content = base64.b64encode(obj['Body'].read()).decode()
-                    response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-                    jsonResponse = response.json()
-                    if jsonResponse['success'] == 'true':
-                        print("put image into memcache successfully")
-                    else:
-                        print("put image into memcache failed")
-            else:
-                print("cache clear failed")
+        if shrinkRatio == '' or float(shrinkRatio) < 0:
+            return "Please enter valid number for shrinkRatio"
+        response = requests.get(backend_base_url + str(auto_scaler_port) + '/update_params', 
+                                data={'active_node':current_node_num,
+                                      'Max_Miss_Rate_threshold': Max_Miss_Rate_threshold, 
+                                      'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 
+                                      'expandRatio':expandRatio, 
+                                      'shrinkRatio':shrinkRatio})
 
     return render_template('resize_auto.html',
                             current_node = current_node_num)
 
-@manageapp.route('/api/update_nodes', methods=['GET'])
-def update_nodes():
-    global current_node_num
-    current_node_num = request.form('active_node')
-    return {'active_node': current_node_num}
 
 @manageapp.route('/get',methods=['GET'])
 def get():
@@ -281,9 +254,8 @@ def get():
 
 @manageapp.route('/delete_all_application_data', methods=['GET'])
 def DeleteAllData():
-    active_node = current_node_num
     # delete all data in memcache
-    for i in range(active_node):
+    for i in range(current_node_num):
         response_memcache = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     jsonResponse = response_memcache.json()
     print(jsonResponse['success'])

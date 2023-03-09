@@ -155,38 +155,45 @@ def Statistics():
     cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
 
     #store statics in database every 5 seconds
-    store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate)
+    store_statistics_in_cloudwatch(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate)
     return {'store in database': 'true'}
 
-def store_statistics_in_database(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate) -> None:
+
+def store_statistics_in_cloudwatch(cur_time, number_of_items, total_size, request_num, miss_rate, hit_rate):
+    cw_api.putMultipleMetric(CUR_NODE, miss_rate, hit_rate, number_of_items, total_size, request_num)
+
+
+def store_statistics_in_database() -> None:
     with memapp.app_context():
+        cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
         mem_statistics = MemcacheStatistics()
         mem_statistics.mem_node = CUR_NODE
         mem_statistics.time = cur_time
-        mem_statistics.num_of_items = number_of_items
-        mem_statistics.total_size_of_items = total_size
-        mem_statistics.number_of_requests_served  = request_num
-        mem_statistics.miss_rate = miss_rate
-        mem_statistics.hit_rate = hit_rate
+        mem_statistics.num_of_items = cw_api.getAverageMetric(CUR_NODE, 60, 'number_of_items')
+        mem_statistics.total_size_of_items = cw_api.getAverageMetric(CUR_NODE, 60, 'size_of_items')
+        mem_statistics.number_of_requests_served  = cw_api.getAverageMetric(CUR_NODE, 60, 'number_of_requests')
+        mem_statistics.miss_rate = cw_api.getAverageMetric(CUR_NODE, 60, 'miss_rate')
+        mem_statistics.hit_rate = cw_api.getAverageMetric(CUR_NODE, 60, 'hit_rate')
         db.session.add(mem_statistics)
         db.session.commit()
-    
-    # upload to the cloud watch
-    res = cw_api.putMeticData(CUR_NODE, miss_rate)
+
 
 @memapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
     scheduler.pause_job('job1')
+    scheduler.pause_job('job2')
     return 'stop scheduler'
 
 
 @memapp.route('/start_scheduler', methods=['GET'])
 def StartScheduler():
     scheduler.resume_job('job1')
+    scheduler.resume_job('job2')
     return 'start scheduler'
 
 # scheduler to store statistics in database
 scheduler.add_job(func=Statistics, trigger='interval', seconds=5, id='job1')
+scheduler.add_job(func=store_statistics_in_database, trigger='interval', seconds=60, id='job2')
 scheduler.start()
 
 

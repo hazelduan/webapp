@@ -8,7 +8,9 @@ function trap_ctrlc ()
     echo "Doing cleanup"
     kill -9 ${PID1}
     kill -9 ${PID2}
+
     # kill -9 ${PID3}
+
     kill -9 ${PID5001}
     kill -9 ${PID5002}
     kill -9 ${PID5003}
@@ -33,13 +35,22 @@ echo "manage app"
 cd ..
 cd manager_app
 python run.py &
+PID2=$!
+echo ${PID2}
+cd react-manage-app
+yarn start &
+PID3=$!
+echo ${PID3}
+cd ..
 cd ..
 cd memcache
+
 #for i in {5001..5008}
 #do
 #    flask run --port $i &
 #    PID${i}=$!
 #done
+
 flask run --port 5001 &
 PID5001=$!
 echo ${PID5001}
