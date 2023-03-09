@@ -156,8 +156,6 @@ if response['KeyCount'] != 0:
 #         return self.rbt.get_value(idx)
 
 
-from api import main  
-
 cw_api = cloudwatchAPI.cloudwatchAPI()
 
 from api import main

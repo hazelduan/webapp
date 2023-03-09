@@ -73,7 +73,7 @@ def get_partition_images():
     partition = request.form.get('partition')
     images = list()
     image_keys = list()
-    for key in list(memcache.keys()):
+    for key in memcache.keys():
         #print("content" + memcache[key])
         image_content = memcache[key]
         image_key_md5 = hashlib.md5(key.encode('utf-8')).hexdigest()
@@ -82,7 +82,7 @@ def get_partition_images():
         if int(image_key_md5[0], 16) == int(partition):
             image_keys.append(key)
             images.append(image_content)
-    for image_key in list(image_keys):
+    for image_key in image_keys:
         memcache.pop(image_key) #delete images in this partition from memcache
 
     return {'image_keys': image_keys, 'images': images}
@@ -130,7 +130,7 @@ def InvalidateKey():
 
 @memapp.route('/display_keys', methods=['GET'])
 def DisplayKeys():
-    res = cw_api.getAverageMetric(8, 60)
+    res = cw_api.getAverageMetric(CUR_NODE, 60, 'miss_rate')
 
     print("Average: ", res)
     

@@ -44,28 +44,29 @@ def MemcacheOption():
 
     global current_node_num
     active_node = current_node_num
+    all_nodes_value_list = []
 
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
         for i in range(current_node_num):#all nodes should have the same comfiguration.
             response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
-        jsonResponse = response.json()
+            jsonResponse = response.json()
+            all_nodes_value_list.extend(jsonResponse['memcache'])
         #print("response of memoption: (post)" + str(jsonResponse))
 
     else:
         for i in range(current_node_num):
             response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
-        jsonResponse = response.json()
+            jsonResponse = response.json()
+            all_nodes_value_list.extend(jsonResponse['memcache'])
         #print("response of memoption: (get)" + str(jsonResponse))
     
     replace_policy = jsonResponse['policy']
-    memcache_values = jsonResponse['memcache']
-    print("memcache_values: " + str(memcache_values))
     capacity = jsonResponse['capacity']
     capacity = str(int(int(capacity) / 1024))
     return render_template('memcache_option.html', 
-                            memcache=memcache_values,
+                            memcache=all_nodes_value_list,
                             replace_policy=replace_policy,
                             memsize = capacity
     )
@@ -138,12 +139,14 @@ def ResizeMemcacheManual():
     if request.method == 'POST':
         new_node_num = int(request.form['new_node_number']) #get the new node number from the form
         if new_node_num != current_node_num: #reallocate the keys in memcache nodes
-            if new_node_num > current_node_num: #add new nodes
-                for node in range(current_node_num, new_node_num):
-                    try:
-                        res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
-                    except requests.exceptions.ConnectionError:
-                        print("Can't connect to port " + str(node + base_port))
+            # if new_node_num > current_node_num: #add new nodes
+            #     for node in range(current_node_num, new_node_num):
+            #         try:
+            #             res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
+            #         except requests.exceptions.ConnectionError:
+            #             print("Can't connect to port " + str(node + base_port))
+
+            put_jsonResponse = {}
             for partition in range(16):
                 if (partition % current_node_num) == (partition % new_node_num):
                     print("Keys in this partition don't need to change node.")
@@ -165,6 +168,8 @@ def ResizeMemcacheManual():
                         print("Some errors occured when get the images from old node.")
             if put_jsonResponse['success'] == 'true':
                 current_node_num = new_node_num
+            
+            logging.info("current_node_num : " + str(current_node_num))
         
         for node in range(current_node_num):
             try:
