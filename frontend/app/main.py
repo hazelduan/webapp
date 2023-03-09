@@ -12,7 +12,7 @@ from app import webapp
 from flask import json
 import requests
 import os
-from app import db, Images, BUCKET_NAME, s3, s3_resource
+from app import db, Images, BUCKET_NAME, s3, s3_resource, ec2
 from pathlib import Path
 import base64
 import hashlib
@@ -324,3 +324,11 @@ def UpdateNode():
     active_node = int(request.form['active_node'])
 
     return redirect(url_for('main'))
+
+@webapp.route("/delete_ec2", methods=['GET'])
+def DeleteEC2():
+    instances = ec2.instances.all()
+
+    for instance in instances:
+        ec2.instances.filter(InstanceIds=[instance.id]).terminate()
+    return 'delete success!'
