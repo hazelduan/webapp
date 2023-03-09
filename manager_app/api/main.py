@@ -160,12 +160,12 @@ def ResizeMemcacheManual():
                     print("response of get_partition_images: " + str(jsonResponse))
                     image_keys = jsonResponse['image_keys']
                     images = jsonResponse['images'] #encoded image content
+                    logging.info('image_keys : ' + str(image_keys))
+                    logging.info('iamge : ' + str(images))
                     #send the key to the new node
-                    if image_keys and images: 
-                        put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
-                        put_jsonResponse = put_response.json()
-                    else:
-                        print("Some errors occured when get the images from old node.")
+                    put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
+                    put_jsonResponse = put_response.json()
+
             if put_jsonResponse['success'] == 'true':
                 current_node_num = new_node_num
             

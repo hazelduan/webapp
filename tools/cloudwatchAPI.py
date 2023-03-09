@@ -49,7 +49,7 @@ class cloudwatchAPI():
 
         return response
 
-
+    # weight average
     def getAverageMetric(self, active_node, seconds, metric_label):
         miss_rates = []
         for node in range(1, active_node+1):

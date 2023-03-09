@@ -73,6 +73,8 @@ def get_partition_images():
     partition = request.form.get('partition')
     images = list()
     image_keys = list()
+
+    
     for key in memcache.keys():
         #print("content" + memcache[key])
         image_content = memcache[key]
@@ -92,11 +94,15 @@ def put_partition_images():
     i = 0
     images = request.form.get('images') #encoded image content
     image_keys = request.form.get('image_keys')
+    logging.info("memcache image:" + str(images))
+    logging.info("memcache image_keys :" + str(image_keys))
+    if image_keys == None:
+        return {'success': 'true'}
     for key in image_keys:
         image_content = images[i]
         memcache[key] = image_content
         i += 1
-    return {'success': 'true'}
+    
 
 
 
