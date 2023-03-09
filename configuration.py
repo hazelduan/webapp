@@ -7,4 +7,4 @@ backend_base_url = 'http://127.0.0.1:'
 frontend_port = 5000
 base_port = 5001  #memcache base port 
 auto_scaler_port = 5020
-manager_port = 8000
+manager_port = 8001

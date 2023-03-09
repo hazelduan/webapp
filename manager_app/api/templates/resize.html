@@ -3,18 +3,45 @@
 {% block title %} Resize the memcache pool{% endblock %}
 
 {% block content %}
-
+<div>
+    <p>
+        <b>Manual mode by default. If you wanna switch to Auto mode, click toggle button.</b>
+    </p>
+</div>
 <div>
     <form action="{{ url_for('ResizeMemcacheManual')}}">
       <button>Manual Resize</button>
     </form>
-  </div>
+</div>
 
-  <div>
+<div>
     <form action="{{ url_for('ResizeMemcacheAuto')}}">
       <button>Auto Resize</button>
     </form>
-  </div>
+</div>
+
+<div>
+    <p><b>Switch to Auto mode:  </b></p>
+    <label class="switch">
+        <input type="checkbox" name="switch button" id="myToggle">
+        <span class="slider round"></span>
+    </label>
+</div>
+
+<script>
+    var toggle = document.getElementById('myToggle');
+    toggle.addEventListener('change', function(event) {
+        if (event.target.checked) {
+            // If the toggle button is on, can click Auto Resize button
+            // window.location.href = "{{ url_for('ResizeMemcacheAuto')}}";
+            alert("Auto mode is on now.")
+        } else {
+            // window.location.href = "{{ url_for('ResizeMemcacheManual')}}";
+            alert("Auto mode is off now.")
+        }
+    });
+</script>
+
 
 <!-- <div>
     <p><b>Configure memcache nodes:</b></p>

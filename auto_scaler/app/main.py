@@ -14,11 +14,13 @@ expand_ratio = 2
 shrink_ratio = 0.5
 
 def checkMissRate():
+
     global active_node
     global max_miss_thres
     global min_miss_thres
     global expand_ratio
     global shrink_ratio
+
     # get average miss rate from CloudWatch
     average_miss_rate = cw_api.getAverageMetric(active_node=active_node, seconds=60)
 
@@ -53,6 +55,20 @@ def UpdateParams():
     shrink_ratio = float(request.form['shrinkRatio'])
 
     return {'success' : 'true'}
+
+@autoscaler.route('/update_params', methods=['GET'])
+def UpdateParams():
+    global active_node
+    global max_miss_thres
+    global min_miss_thres
+    global expand_ratio
+    global shrink_ratio
+
+    active_node = requests.form('active_node')
+    max_miss_thres = requests.form('max_miss_thres')
+    min_miss_thres = requests.form('min_miss_thres')
+    expand_ratio = requests.form('expand_ratio')
+    shrink_ratio = requests.form('expand_ratio')
 
 # scheduler to store statistics in database
 scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')

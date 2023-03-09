@@ -16,13 +16,19 @@
   </div>
 
   <div>
-    <form action="{{url_for('KeysDisplay')}}" method="post">
+    <form action="{{url_for('KeysDisplay')}}">
         <button>Display Keys</button>
     </form>
   </div>
 
   <div>
+
+    <form action="{{ url_for('MemStatistics')}}">
+      <button>Memcache Statistics</button>
+    </form>
+
       <p>Current Active Memcache None : {{active_node}}</p>
+
   </div>
 
 

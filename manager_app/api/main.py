@@ -41,6 +41,10 @@ def get_time():
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
     # should configure from manager app
+
+    global current_node_num
+    active_node = current_node_num
+
     if request.method == 'POST':
         capacity = request.form['capacity']
         policy = request.form['policy']
@@ -57,6 +61,7 @@ def MemcacheOption():
     
     replace_policy = jsonResponse['policy']
     memcache_values = jsonResponse['memcache']
+    print("memcache_values: " + str(memcache_values))
     capacity = jsonResponse['capacity']
     capacity = str(int(int(capacity) / 1024))
     return render_template('memcache_option.html', 
@@ -127,66 +132,90 @@ def ResizeMemcachePool():
 def ResizeMemcacheManual():
     # should configure from manager app
     global current_node_num
+
+    #max_node = 8
+
     if request.method == 'POST':
         new_node_num = int(request.form['new_node_number']) #get the new node number from the form
         if new_node_num != current_node_num: #reallocate the keys in memcache nodes
-            for i in range(current_node_num):
-                response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
-            jsonResponse = response.json()
-            if jsonResponse['success'] == 'true':
-                current_node_num = new_node_num
-                #fetch key from database
-                mydb = mysql.connector.connect( 
-                    host=database_credential.db_host,
-                    user=database_credential.db_user,
-                    passwd=database_credential.db_password,
-                )
-                my_cursor = mydb.cursor()
-                my_cursor.execute(("use {};".format(database_credential.db_name)))
-                my_cursor.execute(("SELECT * FROM images ORDER BY id")) #fetch image keys from database
-                for db_image in my_cursor:
-                    image_key = db_image[1]
-                    image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
-                    print("md5 key is " + image_key_md5)
-                    key_partition = int(image_key_md5[0], 16)
-                    mem_port = key_partition % current_node_num + base_port 
-                    obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2]) #
-                    image_content = base64.b64encode(obj['Body'].read()).decode()# get the image content from s3
-                    # put the image key and content into the memcache
-                    response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-                    jsonResponse = response.json()
-                    if jsonResponse['success'] == 'true':
-                        print("put image into memcache successfully")
-                    else:
-                        print("put image into memcache failed")
-                # newly added, to stop and to start memcache node
-                for node in range(current_node_num):
+            if new_node_num > current_node_num: #add new nodes
+                for node in range(current_node_num, new_node_num):
                     try:
                         res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
                     except requests.exceptions.ConnectionError:
                         print("Can't connect to port " + str(node + base_port))
-                if current_node_num < 8:
-                    for node in range(current_node_num, 8, 1):
-                        try:
-                            res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
-                        except requests.exceptions.ConnectionError:
-                            print("Can't connect to port " + str(node + base_port))
-            else:
-                print("cache clear failed")
+            for partition in range(16):
+                if (partition % current_node_num) == (partition % new_node_num):
+                    print("Keys in this partition don't need to change node.")
+                    continue
+                else:
+                    print("Keys in this partition need to change node.")
+                    #get the key from the old node and delete the key from old node
+                    response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
+                    print("response of get_partition_images: " + str(response))
+                    jsonResponse = response.json()
+                    print("response of get_partition_images: " + str(jsonResponse))
+                    image_keys = jsonResponse['image_keys']
+                    images = jsonResponse['images'] #encoded image content
+                    #send the key to the new node
+                    if image_keys and images: 
+                        put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
+                        put_jsonResponse = put_response.json()
+                    else:
+                        print("Some errors occured when get the images from old node.")
+            if put_jsonResponse['success'] == 'true':
+                current_node_num = new_node_num
+        
+        for node in range(current_node_num):
+            try:
+                res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
+            except requests.exceptions.ConnectionError:
+                print("Can't connect to port " + str(node + base_port))
+        if current_node_num < 8:
+            for node in range(current_node_num, 8, 1):
+                try:
+                    res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
+                except requests.exceptions.ConnectionError:
+                    print("Can't connect to port " + str(node + base_port))
 
 
-        # res = requests.get(backend_base_url + str(auto_scaler_port) + '/update_params', 
-        # data={'active_node':current_node_num, 
-        # 'Max_Miss_Rate_threshold': -1, 
-        # 'Min_Miss_Rate_threshold':-1, 
-        # 'expandRatio':-1, 
-        # 'shrinkRatio':-1})
+        # res = requests.get(backend_base_url + str(auto_scaler_port) + '/update_params', data={'active_node':current_node_num, 'Max_Miss_Rate_threshold': -1, 'Min_Miss_Rate_threshold':-1, 'expandRatio':-1, 'shrinkRatio':-1})
 
-        # Update active node in frontend
-        res = requests.post(backend_base_url + str(frontend_port) + '/update_node',
-                            data={'active_node' : current_node_num})
     return render_template('resize_manual.html', 
                             current_node = current_node_num,)
+
+
+            # for i in range(current_node_num):
+            #     response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+            # jsonResponse = response.json()
+            # if jsonResponse['success'] == 'true':
+            #     current_node_num = new_node_num
+            #     #fetch key from database
+            #     mydb = mysql.connector.connect( 
+            #         host=database_credential.db_host,
+            #         user=database_credential.db_user,
+            #         passwd=database_credential.db_password,
+            #     )
+            #     my_cursor = mydb.cursor()
+            #     my_cursor.execute(("use {};".format(database_credential.db_name)))
+            #     my_cursor.execute(("SELECT * FROM images ORDER BY id")) #fetch image keys from database
+            #     for db_image in my_cursor:
+            #         image_key = db_image[1]
+            #         image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+            #         print("md5 key is " + image_key_md5)
+            #         key_partition = int(image_key_md5[0], 16)
+            #         mem_port = key_partition % current_node_num + base_port 
+            #         obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2]) #
+            #         image_content = base64.b64encode(obj['Body'].read()).decode()# get the image content from s3
+            #         # put the image key and content into the memcache
+            #         response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+            #         jsonResponse = response.json()
+            #         if jsonResponse['success'] == 'true':
+            #             print("put image into memcache successfully")
+            #         else:
+            #             print("put image into memcache failed")
+                # newly added, to stop and to start memcache node
+                
 
 @manageapp.route('/resize_auto', methods=['GET','POST'])
 def ResizeMemcacheAuto():

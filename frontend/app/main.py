@@ -188,7 +188,7 @@ def ImageLookupForTest(key_value):
     return resp
 
 
-@webapp.route('/api/list_keys_True', methods=['POST'])
+@webapp.route('/api/list_keys_True')
 def KeysDisplay():
     ## Show all the available keys in database
     db_images = Images.query.all()
@@ -222,7 +222,9 @@ def DeleteAllKeys():
     db.session.commit()
 
     ## Delete from all the memcache
-    active_node = 8
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node']
     for i in range(active_node):
         response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     jsonResponse = response.json()
@@ -307,6 +309,9 @@ def CacheClear():
 @webapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
     # retrieve from manager app
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node']
     for mem_port in range(active_node):
         try:
             res = requests.get(backend_base_url + str(mem_port + base_port) + '/stop_scheduler')
