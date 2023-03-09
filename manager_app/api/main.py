@@ -146,7 +146,7 @@ def ResizeMemcacheManual():
             #         except requests.exceptions.ConnectionError:
             #             print("Can't connect to port " + str(node + base_port))
 
-            put_jsonResponse = {}
+            # put_jsonResponse = {}
             for partition in range(16):
                 if (partition % current_node_num) == (partition % new_node_num):
                     print("Keys in this partition don't need to change node.")
@@ -189,37 +189,6 @@ def ResizeMemcacheManual():
     return render_template('resize_manual.html', 
                             current_node = current_node_num,)
 
-
-            # for i in range(current_node_num):
-            #     response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
-            # jsonResponse = response.json()
-            # if jsonResponse['success'] == 'true':
-            #     current_node_num = new_node_num
-            #     #fetch key from database
-            #     mydb = mysql.connector.connect( 
-            #         host=database_credential.db_host,
-            #         user=database_credential.db_user,
-            #         passwd=database_credential.db_password,
-            #     )
-            #     my_cursor = mydb.cursor()
-            #     my_cursor.execute(("use {};".format(database_credential.db_name)))
-            #     my_cursor.execute(("SELECT * FROM images ORDER BY id")) #fetch image keys from database
-            #     for db_image in my_cursor:
-            #         image_key = db_image[1]
-            #         image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
-            #         print("md5 key is " + image_key_md5)
-            #         key_partition = int(image_key_md5[0], 16)
-            #         mem_port = key_partition % current_node_num + base_port 
-            #         obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image[2]) #
-            #         image_content = base64.b64encode(obj['Body'].read()).decode()# get the image content from s3
-            #         # put the image key and content into the memcache
-            #         response = requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-            #         jsonResponse = response.json()
-            #         if jsonResponse['success'] == 'true':
-            #             print("put image into memcache successfully")
-            #         else:
-            #             print("put image into memcache failed")
-                # newly added, to stop and to start memcache node
                 
 
 @manageapp.route('/resize_auto', methods=['GET','POST'])
@@ -245,6 +214,7 @@ def ResizeMemcacheAuto():
                                       'Min_Miss_Rate_threshold':Min_Miss_Rate_threshold, 
                                       'expandRatio':expandRatio, 
                                       'shrinkRatio':shrinkRatio})
+        
 
     return render_template('resize_auto.html',
                             current_node = current_node_num)
