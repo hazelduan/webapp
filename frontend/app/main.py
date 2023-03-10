@@ -91,7 +91,7 @@ def UploadImage():
 
 
     resp = {"success" : jsonResponse['success'],
-            "key" : [image_key]}
+            "key" : image_key}
     response = webapp.response_class(
             response=json.dumps(resp),
             status=200,
@@ -167,7 +167,7 @@ def ImageLookupForTest(key_value):
             requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content': image_content})
             resp = {
                 "success" : "true",
-                "key" : [image_key],
+                "key" : image_key,
                 "content" : image_content
             }
         else:
@@ -182,7 +182,7 @@ def ImageLookupForTest(key_value):
         # found the image in cache
         resp = {
             "success" : "true",
-            "key" : [image_key],
+            "key" : image_key,
             "content" : image_content
         }
     return resp
