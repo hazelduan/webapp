@@ -85,13 +85,13 @@ def UploadImage():
     active_node = jsonNodeResponse['active_node'] 
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
-    response = requests.get(backend_base_url + str(mem_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
+    response = requests.post(backend_base_url + str(mem_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
     jsonResponse = response.json()
 
 
     resp = {"success" : jsonResponse['success'],
-            "key" : [image_key]}
+            "key" : image_key}
     response = webapp.response_class(
             response=json.dumps(resp),
             status=200,
@@ -167,7 +167,7 @@ def ImageLookupForTest(key_value):
             requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content': image_content})
             resp = {
                 "success" : "true",
-                "key" : [image_key],
+                "key" : image_key,
                 "content" : image_content
             }
         else:
@@ -182,7 +182,7 @@ def ImageLookupForTest(key_value):
         # found the image in cache
         resp = {
             "success" : "true",
-            "key" : [image_key],
+            "key" : image_key,
             "content" : image_content
         }
     return resp
@@ -227,6 +227,7 @@ def DeleteAllKeys():
     active_node = jsonNodeResponse['active_node']
     for i in range(active_node):
         response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
 
@@ -332,3 +333,66 @@ def UpdateNode():
 #     for instance in instances:
 #         ec2.instances.filter(InstanceIds=[instance.id]).terminate()
 #     return 'delete success!'
+
+@webapp.route("/api/configure_cache", methods=['POST'])
+def ConfigureCache():
+    mode = request.args.get('mode')
+    numNodes = request.args.get('numNodes')
+    cacheSize = request.args.get('cacheSize')
+    policy = request.args.get('policy')
+    expRatio = request.args.get('expRatio')
+    shrinkRatio = request.args.get('shrinkRatio')
+    maxMiss = request.args.get('maxMiss')
+    minMiss = request.args.get('minMiss')
+
+
+    # Set mode
+    response = requests.post(backend_base_url + str(manager_port) + '/set_mode',
+                  data={'mode': mode})
+    # Set number of nodes
+    requests.post(backend_base_url + str(manager_port) + '/resize',
+                  data={'new_node_number': numNodes})
+    # Set cache size and policy
+    if policy == 'RR':
+        policy == 'Random'
+    requests.post(backend_base_url + str(manager_port) + '/memcache_option',
+                      data={'capacity': cacheSize, 'policy': policy})
+    # Set expRatio, shrinkRatio, maxMiss, and minMiss
+    requests.post(backend_base_url + str(manager_port) + '/config_auto_resize',
+                  data=dict(expandRatio=expRatio, shrinkRatio=shrinkRatio, Max_Miss_Rate_threshold=maxMiss,
+                            Min_Miss_Rate_threshold=minMiss))
+    print(mode)
+    print(numNodes)
+    print(cacheSize)
+    print(policy)
+    print(expRatio)
+    print(shrinkRatio)
+    print(maxMiss)
+    print(minMiss)
+
+    resp = {"success": "true",
+            "mode": mode,
+            "numNodes": int(numNodes),
+            "cacheSize": int(cacheSize),
+            "policy": policy}
+    print(resp)
+    response = webapp.response_class(
+        response=json.dumps(resp),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+@webapp.route("/api/getNumNodes", methods=['POST'])
+def GetNumNodes():
+    nodeResponse = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = nodeResponse.json()
+    numActiveNodes = jsonNodeResponse['active_node']
+    resp = {"success": "true",
+            "numNodes": numActiveNodes}
+    response = webapp.response_class(
+        response=json.dumps(resp),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
