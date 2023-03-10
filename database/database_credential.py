@@ -6,5 +6,5 @@ except ImportError:
 db_user = 'root'
 db_password = password.password
 db_host = 'localhost'
-db_name = 'images'
+db_name = 'webapp_db'
 
