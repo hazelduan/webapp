@@ -13,13 +13,9 @@ from hashlib import md5
 
 from tools import cloudwatchAPI
 
-
 manageapp = Flask(__name__)
 
-
 manageapp.config['SECRET_KEY'] = 'dev' 
-
-
 
 db_user = database_credential.db_user
 db_password = database_credential.db_password
