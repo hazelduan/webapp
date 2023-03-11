@@ -39,7 +39,7 @@ def checkMissRate():
     print('current active node : ', active_node)
     response = requests.post(backend_base_url + str(manager_port) + '/resize_manual', data={'new_node_number': active_node})
 
-@autoscaler.route('/update_params', methods=['GET'])
+@autoscaler.route('/update_params', methods=['POST'])
 def UpdateParams():
     global active_node
     global max_miss_thres
@@ -48,27 +48,14 @@ def UpdateParams():
     global shrink_ratio
 
     active_node = int(request.form['active_node'])
-
     max_miss_thres = float(request.form['Max_Miss_Rate_threshold'])
     min_miss_thres = float(request.form['Min_Miss_Rate_threshold'])
     expand_ratio = float(request.form['expandRatio'])
     shrink_ratio = float(request.form['shrinkRatio'])
 
+    print(active_node, max_miss_thres, min_miss_thres, expand_ratio, shrink_ratio)
+
     return {'success' : 'true'}
-
-@autoscaler.route('/update_params', methods=['GET'])
-def UpdateParams():
-    global active_node
-    global max_miss_thres
-    global min_miss_thres
-    global expand_ratio
-    global shrink_ratio
-
-    active_node = requests.form('active_node')
-    max_miss_thres = requests.form('max_miss_thres')
-    min_miss_thres = requests.form('min_miss_thres')
-    expand_ratio = requests.form('expand_ratio')
-    shrink_ratio = requests.form('expand_ratio')
 
 # scheduler to store statistics in database
 scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')
