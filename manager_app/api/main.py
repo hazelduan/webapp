@@ -141,7 +141,7 @@ def MemStatistics():
 
 @manageapp.route('/resize', methods=['GET'])
 def resize_page():
-    return render_template('resize.html')
+    return render_template('resize.html', mode=mode)
 
 
 def resize_memcachePool(size):
@@ -211,7 +211,7 @@ def ResizeMemcacheManual():
     # should configure from manager app
     global current_node_num, mode
     if request.method == 'POST':
-        mode = 'manual'
+        requests.post(backend_base_url + str(manager_port) + url_for('set_mode'), data={'mode': 'manual'})
         new_node_num = request.form['new_node_number']
         print(backend_base_url + str(manager_port) + url_for('resize'))
         requests.post(backend_base_url + str(manager_port) + url_for('resize'),
@@ -254,7 +254,7 @@ def ResizeMemcacheAuto():
     # should configure from manager app
     global current_node_num, mode
     if request.method == 'POST':
-        mode = 'auto'
+        requests.post(backend_base_url + str(manager_port) + url_for('set_mode'), data={'mode': 'auto'})
         requests.post(backend_base_url + str(manager_port) + url_for('config_auto_scaler'),
                       data={'active_node': current_node_num,
                             'Max_Miss_Rate_threshold': request.form['Max_Miss_Rate_threshold'],
@@ -302,18 +302,33 @@ def DeleteAllData():
     else:
         return {'cache_clear': False}
 
+@manageapp.route('/get_mode', methods=['GET'])
+def get_mode():
+    """
+    Get the mode of the application.
+    """
+    global mode
+    return {'success': True,
+            'mode': mode}
+
 
 @manageapp.route('/set_mode', methods=['POST'])
-def setMode():
+def set_mode():
     """
     Set the mode of the application to either 'auto' or 'manual'.
     """
     global mode
     incoming_mode = request.form['mode']
-    if (incoming_mode not in ['auto', 'manual']):
+    if incoming_mode not in ['auto', 'manual']:
         return {'success': False,
                 'mode': mode}
     mode = incoming_mode
-    print("mode: " + mode)
+    if mode == 'auto':
+        requests.post(backend_base_url + str(auto_scaler_port) + '/turn_on_auto_scaler')
+    elif mode == 'manual':
+        requests.post(backend_base_url + str(auto_scaler_port) + '/turn_off_auto_scaler')
+    else:
+        print("Invalid mode: " + mode)
+    print("set mode to : " + mode)
     return {'success': True,
             'mode': mode}
