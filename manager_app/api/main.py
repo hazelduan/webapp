@@ -123,6 +123,74 @@ def MemStatistics():
                         'nodes':mem_nodes,
                         }
     return render_template('mem_statistics.html', data_to_render = data_to_render)
+    # list_time = []
+    # list_number_of_items = []
+    # list_total_size_of_items = []
+    # list_number_of_request_served = []
+    # list_miss_rate = []
+    # list_hit_rate = []
+    # list_nodes = []
+    # counter = 0
+    # time = ""
+    # number_of_items = 0
+    # total_size_of_items = 0
+    # number_of_request_served = 0
+    # miss_reqs = 0
+    # hit_reqs = 0
+    # number_of_nodes = 0
+
+    # print("my cursor" + str(my_cursor))
+    # for db_statis in my_cursor:
+    #     if str(db_statis[1]) in list_time:# calculate statistics of each minute
+    #         print("successfully sum up the statistics of each minute.")
+    #         number_of_items += db_statis[2]
+    #         total_size_of_items += db_statis[3]
+    #         number_of_request_served += db_statis[4]
+    #         miss_reqs += db_statis[5] * db_statis[4]
+    #         hit_reqs += db_statis[4] - miss_reqs
+    #         number_of_nodes += 1
+    #         continue
+
+    #     if time != str(db_statis[1]):
+    #         if time == "":
+    #             list_time.append(str(db_statis[1]))
+    #         else:
+    #             list_time.append(time)
+    #         list_number_of_items.append(number_of_items)
+    #         list_total_size_of_items.append(total_size_of_items)
+    #         list_number_of_request_served.append(number_of_request_served)
+    #         if number_of_request_served:
+    #             list_miss_rate.append(miss_reqs / number_of_request_served)
+    #             list_hit_rate.append(hit_reqs / number_of_request_served)
+    #         else:
+    #             list_miss_rate.append(0)
+    #             list_hit_rate.append(0)
+    #         list_nodes.append(number_of_nodes)
+
+    #     print("time: " + str(db_statis[1])) 
+    #     time = str(db_statis[1])
+    #     number_of_items = db_statis[2]
+    #     total_size_of_items = db_statis[3]
+    #     number_of_request_served = db_statis[4]
+    #     miss_reqs = db_statis[5] * db_statis[4]
+    #     hit_reqs = db_statis[4] - miss_reqs
+    #     number_of_nodes = 1
+    #     counter += 1
+
+    # print(type(time[2]))
+    # print(time[0])
+
+    # data_to_render = {'number_of_rows': counter, 
+    #                     'time':list_time, 
+    #                     'num_of_items':list_number_of_items, 
+    #                     'total_size_of_items':list_total_size_of_items, 
+    #                     'number_of_request_served':list_number_of_request_served, 
+    #                     'miss_rate':list_miss_rate, 
+    #                     'hit_rate':list_hit_rate,
+    #                     'nodes':list_nodes,
+    #                 }
+                        
+
 
 
 @manageapp.route('/resize', methods=['GET'])

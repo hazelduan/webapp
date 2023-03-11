@@ -29,10 +29,14 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-active_node = 8
+active_node = 8 #by default active node is 8
 
 @webapp.route('/')
 def main():
+    global active_node
+    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    jsonNodeResponse = active_node_response.json()
+    active_node = jsonNodeResponse['active_node']
     return render_template("index.html", active_node=active_node)
 
 @webapp.route('/upload_image')
