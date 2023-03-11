@@ -58,7 +58,7 @@ def MemcacheOption():
             policy = request.form['policy']
         for i in range(current_node_num):  # all nodes should have the same configuration.
             response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option",
-                                    data={'capacity': capacity, 'policy': policy, 'method': 'post'})
+                                    data={'capacity': int(capacity) * 1024, 'policy': policy, 'method': 'post'})
             print("current_node_num", current_node_num)
             print(i)
             print(response)

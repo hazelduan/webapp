@@ -7,7 +7,7 @@ import sys
 sys.path.append('..')
 sys.path.append('..')
 from database import database_credential
-from pathlib import Path
+from tools import cloudwatchAPI
 
 
 webapp = Flask(__name__)
@@ -70,6 +70,8 @@ my_cursor.execute(("TRUNCATE memcache_statistics;"))
 # ec2 = boto3.resource('ec2')
 # ec2.create_instances(ImageId='ami-006dcf34c09e50022', MinCount=1, MaxCount=1,
 #                      InstanceType='t2.micro', SubnetId='subnet-03cdead617e2d0d41')
+
+cw_api = cloudwatchAPI.cloudwatchAPI()
 
 from app import main
 

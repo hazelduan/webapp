@@ -339,7 +339,7 @@ def UpdateNode():
 #         ec2.instances.filter(InstanceIds=[instance.id]).terminate()
 #     return 'delete success!'
 
-@webapp.route("/api/configure_cache", methods=['POST'])
+@webapp.route('/api/configure_cache', methods=['POST'])
 def ConfigureCache():
     mode = request.args.get('mode')
     numNodes = request.args.get('numNodes')
@@ -353,39 +353,27 @@ def ConfigureCache():
     # Set mode
     response = requests.post(backend_base_url + str(manager_port) + '/set_mode',
                              data={'mode': mode})
-    print(response.json())
     # Set number of nodes
     response = requests.post(backend_base_url + str(manager_port) + '/resize',
                              data={'new_node_number': numNodes})
-    print(response.json())
     # Set cache size and policy
     if policy == 'RR':
-        policy == 'Random'
+        translated_policy = 'Random'
+    else:
+        translated_policy = policy
     requests.post(backend_base_url + str(manager_port) + '/memcache_option',
-                  data={'capacity': cacheSize, 'policy': policy})
-
-    # Set expRatio, shrinkRatio, maxMiss, and minMiss
-    response = requests.post(backend_base_url + str(manager_port) + '/config_auto_scaler',
-                             data={'expandRatio': expRatio, 'shrinkRatio': shrinkRatio,
-                                   'Max_Miss_Rate_threshold': float(maxMiss),
-                                   'Min_Miss_Rate_threshold': float(minMiss)})
-    print(response)
-
-    print(mode)
-    print(numNodes)
-    print(cacheSize)
-    print(policy)
-    print(expRatio)
-    print(shrinkRatio)
-    print(maxMiss)
-    print(minMiss)
-
+                  data={'capacity': cacheSize, 'policy': translated_policy})
+    if expRatio != None and shrinkRatio != None and maxMiss != None and minMiss != None:
+        # Set expRatio, shrinkRatio, maxMiss, and minMiss
+        response = requests.post(backend_base_url + str(manager_port) + '/config_auto_scaler',
+                                 data={'expandRatio': expRatio, 'shrinkRatio': shrinkRatio,
+                                       'Max_Miss_Rate_threshold': float(maxMiss),
+                                       'Min_Miss_Rate_threshold': float(minMiss)})
     resp = {"success": "true",
             "mode": mode,
             "numNodes": int(numNodes),
             "cacheSize": int(cacheSize),
             "policy": policy}
-    print(resp)
     response = webapp.response_class(
         response=json.dumps(resp),
         status=200,
@@ -394,13 +382,31 @@ def ConfigureCache():
     return response
 
 
-@webapp.route("/api/getNumNodes", methods=['POST'])
-def GetNumNodes():
-    nodeResponse = requests.get(backend_base_url + str(manager_port) + '/get')
-    jsonNodeResponse = nodeResponse.json()
-    numActiveNodes = jsonNodeResponse['active_node']
+@webapp.route('/api/getNumNodes', methods=['POST'])
+def Get_num_Nodes():
+    node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    json_node_response = node_response.json()
+    num_active_nodes = json_node_response['active_node']
     resp = {"success": "true",
-            "numNodes": numActiveNodes}
+            "numNodes": num_active_nodes}
+    response = webapp.response_class(
+        response=json.dumps(resp),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+@webapp.route('/api/getRate', methods=['POST'])
+def get_rate():
+    rate_type = request.args.get('rate')
+    if rate_type == 'miss':
+        rate = 'miss'
+    elif rate_type == 'hit':
+        rate = 'hit'
+    else:
+        print('Invalid rate type')
+    # getAverageMetric
+    resp = {'success': 'true', 'rate': rate}
     response = webapp.response_class(
         response=json.dumps(resp),
         status=200,
