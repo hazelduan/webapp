@@ -25,6 +25,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 current_node_num = 8# By default the node is 8.
+public_ips = []
 
 @manageapp.route('/')
 def main():
@@ -37,6 +38,16 @@ def get_time():
         "Date":x, 
         "programming":"python"
         }
+@manageapp.route('/update_public_ips', methods=['POST'])
+def UpdatePublicIP():
+    global public_ips
+    logging.info('receve pubic ips : ' + str(request.form['public_ips']))
+    if len(public_ips) < 8:
+        public_ips.append(request.form['public_ips'])
+
+    logging.info("in backend, public ips " + str(public_ips))
+    return {'success' : 'true'}
+
 
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
@@ -50,14 +61,14 @@ def MemcacheOption():
         capacity = request.form['capacity']
         policy = request.form['policy']
         for i in range(current_node_num):#all nodes should have the same comfiguration.
-            response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
+            response = requests.get(public_ips[i] + ':5001' + "/memcache_option", data={'capacity': capacity, 'policy':policy, 'method':'post'})
             jsonResponse = response.json()
             all_nodes_value_list.extend(jsonResponse['memcache'])
         #print("response of memoption: (post)" + str(jsonResponse))
 
     else:
         for i in range(current_node_num):
-            response = requests.get(backend_base_url + str(i + base_port) + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
+            response = requests.get(public_ips[i] + ':5001' + "/memcache_option", data={'capacity': '1', 'policy': '1', 'method':'get'})
             jsonResponse = response.json()
             all_nodes_value_list.extend(jsonResponse['memcache'])
         #print("response of memoption: (get)" + str(jsonResponse))
@@ -74,7 +85,7 @@ def MemcacheOption():
 @manageapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
     for i in range(current_node_num):
-        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+        response = requests.get(public_ips[i] + ':5001' + '/cache_clear')
     #print("Response of cache clear:" + response)
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
@@ -154,7 +165,7 @@ def ResizeMemcacheManual():
                 else:
                     print("Keys in this partition need to change node.")
                     #get the key from the old node and delete the key from old node
-                    response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
+                    response = requests.get(public_ips[partition % current_node_num] + ':5001' + '/get_partition_images', data={'partition': str(partition)})
                     print("response of get_partition_images: " + str(response))
                     jsonResponse = response.json()
                     print("response of get_partition_images: " + str(jsonResponse))
@@ -163,7 +174,7 @@ def ResizeMemcacheManual():
                     logging.info('image_keys : ' + str(image_keys))
                     logging.info('iamge : ' + str(images))
                     #send the key to the new node
-                    put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
+                    put_response = requests.get(public_ips[partition % current_node_num] + ':5001' + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
                     put_jsonResponse = put_response.json()
 
             if put_jsonResponse['success'] == 'true':
@@ -173,13 +184,13 @@ def ResizeMemcacheManual():
         
         for node in range(current_node_num):
             try:
-                res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
+                res = requests.get(public_ips[node] + ':5001' + '/start_scheduler')
             except requests.exceptions.ConnectionError:
                 print("Can't connect to port " + str(node + base_port))
         if current_node_num < 8:
             for node in range(current_node_num, 8, 1):
                 try:
-                    res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
+                    res = requests.get(public_ips[node] + ':5001' + '/stop_scheduler')
                 except requests.exceptions.ConnectionError:
                     print("Can't connect to port " + str(node + base_port))
 
@@ -231,7 +242,7 @@ def get():
 def DeleteAllData():
     # delete all data in memcache
     for i in range(current_node_num):
-        response_memcache = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+        response_memcache = requests.get(public_ips[i] + ':5001' + '/cache_clear')
     jsonResponse = response_memcache.json()
     print(jsonResponse['success'])
     if jsonResponse['success'] == 'true':

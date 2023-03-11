@@ -69,7 +69,7 @@ class CacheDict(OrderedDict):
             if self.policy == 'LRU':
                 old_key = next(iter(self))
             elif self.policy == 'Random':
-                old_key = random.sample(self.keys(), 1)
+                old_key = random.sample(list(self.keys()), 1)
                 old_key = old_key[0]
             old_value = super().__getitem__(old_key)
             self.cur_size -= int(len(old_value) / 1024)

@@ -56,19 +56,6 @@ def UpdateParams():
 
     return {'success' : 'true'}
 
-@autoscaler.route('/update_params', methods=['GET'])
-def UpdateParams():
-    global active_node
-    global max_miss_thres
-    global min_miss_thres
-    global expand_ratio
-    global shrink_ratio
-
-    active_node = requests.form('active_node')
-    max_miss_thres = requests.form('max_miss_thres')
-    min_miss_thres = requests.form('min_miss_thres')
-    expand_ratio = requests.form('expand_ratio')
-    shrink_ratio = requests.form('expand_ratio')
 
 # scheduler to store statistics in database
 scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')

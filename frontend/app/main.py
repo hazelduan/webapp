@@ -4,7 +4,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import base_path, file_system_path, backend_base_url, base_port, manager_port
+from configuration import base_path, file_system_path, backend_base_url, base_port, manager_port, EC2_AMI, EC2_NODE_ID, EC2_CONTROL_ID
 
 
 from flask import render_template, url_for, request, flash, redirect
@@ -12,11 +12,12 @@ from app import webapp
 from flask import json
 import requests
 import os
-from app import db, Images, BUCKET_NAME, s3, s3_resource
+from app import db, Images, BUCKET_NAME, s3, s3_resource, ec2, ec2_client, ssm_client
 from pathlib import Path
 import base64
 import hashlib
 import signal
+import threading
 
 
 logger = logging.getLogger()
@@ -30,9 +31,23 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 active_node = 8
+EC2_ALL_START = 0
+has_started = 0
+public_ips = []
+local_public_ip = ''
 
 @webapp.route('/')
 def main():
+    global local_public_ip
+    instances = ec2.instances.all()
+    for instance in instances:
+        if instance.id in EC2_NODE_ID:
+            public_ips.append('http://' + str(instance.public_ip_address))
+            requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
+                 data={'public_ips' : 'http://' + str(instance.public_ip_address) })
+        elif instance.id in EC2_CONTROL_ID:
+            local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
+
     return render_template("index.html", active_node=active_node)
 
 @webapp.route('/upload_image')
@@ -80,12 +95,12 @@ def UploadImage():
     mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
-    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node'] 
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
-    response = requests.get(backend_base_url + str(mem_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
+    response = requests.get(public_ips[mem_partition % active_node] + ':5001' + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
     jsonResponse = response.json()
 
@@ -112,13 +127,13 @@ def ImageLookup():
         mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
         # number of active node should be retrieve from manage app
         # requests.get(url_for_manage_app, ..)
-        active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+        active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
         jsonNodeResponse = active_node_response.json()
         active_node = jsonNodeResponse['active_node'] 
         print('the active node is:' + str(active_node))
         mem_port = mem_partition % active_node + base_port
 
-        response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
+        response = requests.get(public_ips[mem_partition % active_node] + ':5001' + "/get", data={'image_key': image_key})
         jsonResponse = response.json()
         image_content = jsonResponse['image_content']
         
@@ -133,7 +148,7 @@ def ImageLookup():
                 obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
                 image_content = base64.b64encode(obj['Body'].read()).decode()
                 # put the key into memcache
-                requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+                requests.get(public_ips[mem_partition % active_node] + ':5001' + '/put', data={'image_key': image_key, 'image_content':image_content})
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
             return "Image not found"
     return render_template('display_image.html')
@@ -148,13 +163,13 @@ def ImageLookupForTest(key_value):
     mem_partition = int(image_key_md5[0], 16)       # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
-    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node'] 
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
 
-    response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
+    response = requests.get(public_ips[mem_partition % active_node] + ':5001' + "/get", data={'image_key': image_key})
     jsonResponse = response.json()
     image_content = jsonResponse['image_content']
 
@@ -164,7 +179,7 @@ def ImageLookupForTest(key_value):
             obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
             image_content = base64.b64encode(obj['Body'].read()).decode()
             # put the key into memcache
-            requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content': image_content})
+            requests.get(public_ips[mem_partition % active_node] + ':5001' + '/put', data={'image_key': image_key, 'image_content': image_content})
             resp = {
                 "success" : "true",
                 "key" : [image_key],
@@ -222,11 +237,11 @@ def DeleteAllKeys():
     db.session.commit()
 
     ## Delete from all the memcache
-    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
     for i in range(active_node):
-        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+        response = requests.get(public_ips[i] + ':5001' + '/cache_clear')
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
 
@@ -258,7 +273,7 @@ def DeleteAllKeys():
 def CacheClear():
     active_node = 8
     for i in range(active_node):
-        response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
+        response = requests.get(public_ips[i] + ':5001' + '/cache_clear')
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
 
@@ -309,12 +324,12 @@ def CacheClear():
 @webapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
     # retrieve from manager app
-    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
+    active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
     for mem_port in range(active_node):
         try:
-            res = requests.get(backend_base_url + str(mem_port + base_port) + '/stop_scheduler')
+            res = requests.get(public_ips[mem_port] + ':5001' + '/stop_scheduler')
         except requests.exceptions.ConnectionError:
             print(f'port {mem_port + base_port} offline')
 
@@ -325,10 +340,116 @@ def UpdateNode():
 
     return redirect(url_for('main'))
 
-# @webapp.route("/delete_ec2", methods=['GET'])
-# def DeleteEC2():
-#     instances = ec2.instances.all()
 
-#     for instance in instances:
-#         ec2.instances.filter(InstanceIds=[instance.id]).terminate()
-#     return 'delete success!'
+@webapp.route("/list_ec2", methods=['GET'])
+def ListEC2():
+    instances = ec2.instances.all()
+
+    for instance in instances:
+        logging.info("id : " + str(instance.id))
+        logging.info("instance type : " + str(instance.instance_type))
+        logging.info("instance_state : " + str(instance.state['Name']))
+        logging.info("AMI : " + str(instance.image_id))
+        logging.info("KEY pair : " + str(instance.key_name))
+        logging.info("Public IP address : " + str(instance.public_ip_address))
+
+    html = """
+        <!DOCTYPE html >
+            <body>
+                <p>id : {0} </p>
+                <p>instance type : {1}</p>
+                <p>instance_state : {2}</p>
+                <p>AMI : {3}</p>
+                <p>KEY pair : {4}</p>
+                <p>Public IP address :  {5}</p>
+            </body>
+        </html>
+    """
+
+    return html.format(instance.id, instance.instance_type, instance.state['Name'], instance.image_id, instance.key_name, instance.public_ip_address)
+
+
+@webapp.route("/start_ec2", methods=['GET'])
+def StartEC2():
+    instances = ec2.instances.all()
+    start_ids = []
+    for instance in instances:
+        if instance.id in EC2_NODE_ID and instance.state['Name'] == 'stopped':
+            start_ids.append(instance.id)
+    
+    ec2_client.start_instances(InstanceIds=start_ids)
+
+    return "starting instances ..."
+
+@webapp.route("/stop_ec2", methods=['GET'])
+def StopEC2():
+    instances = ec2.instances.all()
+    stop_ids = []
+    for instance in instances:
+        if instance.id in EC2_NODE_ID and instance.state['Name'] == 'running':
+            stop_ids.append(instance.id)
+    
+    ec2_client.stop_instances(InstanceIds=stop_ids)
+
+    return "stopping instances ..."
+
+
+@webapp.route("/delete_ec2", methods=['GET'])
+def DeleteEC2():
+    instances = ec2.instances.all()
+
+    for instance in instances:
+        if instance.id == EC2_NODE_ID:
+            ec2.instances.filter(InstanceIds=[instance.id]).terminate()
+    return 'delete success!'
+
+
+def HealthCheck():
+    logging.info("Running HealthCheck...")
+    global EC2_ALL_START
+    global active_node
+    global has_started
+    global public_ips
+    global local_public_ip
+    instances = ec2.instances.all()
+
+    while 1:
+        running_cnt = 0
+        for instance in instances:
+            if instance.id in EC2_NODE_ID and instance.state['Name'] == 'running':
+                running_cnt += 1
+            elif instance.id in EC2_CONTROL_ID:
+                local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
+        
+        active_node = running_cnt
+        if running_cnt == 8:
+            break
+
+        if has_started == 0:
+            has_started = 1
+            # StartEC2()
+
+
+    EC2_ALL_START = 1
+    for instance in instances:
+        if instance.id in EC2_NODE_ID:
+            public_ips.append('http://' + str(instance.public_ip_address))
+            requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
+                 data={'public_ips' : 'http://' + str(instance.public_ip_address) })
+        
+            
+            
+    logging.info('in frontend, public ips : ' + str(public_ips))
+    
+    logging.info("HealthCheck Ended")
+
+webapp.route('/show_len', methods=['GET'])
+def showlen():
+    return "len of public ip : {}".format(len(public_ips))
+
+
+# try:
+#     t = threading.Thread(target=HealthCheck, name='HealthCheck')
+#     t.start()
+# except:
+#     logging.info("Unable to start new thread!")

@@ -66,10 +66,13 @@ my_cursor = mydb.cursor()
 my_cursor.execute(("USE {};".format(database_credential.db_name)))
 my_cursor.execute(("TRUNCATE memcache_statistics;"))
 
-# # creating ec2 instance
-# ec2 = boto3.resource('ec2')
-# ec2.create_instances(ImageId='ami-006dcf34c09e50022', MinCount=1, MaxCount=1,
+# creating ec2 instance
+ec2 = boto3.resource('ec2')
+ec2_client = boto3.client('ec2')
+# ec2.create_instances(ImageId='ami-006dcf34c09e50022', MinCount=1, MaxCount=8,
 #                      InstanceType='t2.micro', SubnetId='subnet-03cdead617e2d0d41')
+
+ssm_client = boto3.client('ssm')
 
 from app import main
 
