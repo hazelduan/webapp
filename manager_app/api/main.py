@@ -35,15 +35,6 @@ def main():
     return render_template("index.html")
 
 
-@manageapp.route('/api/time')  # just for test (to connect react with python api)
-def get_time():
-    return {
-        'Name': "hazel",
-        "Date": x,
-        "programming": "python"
-    }
-
-
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():
     # should configure from manager app
