@@ -8,7 +8,7 @@ from database import database_credential
 from configuration import base_path, backend_base_url, frontend_port, base_port, auto_scaler_port, manager_port
 
 from flask import render_template, url_for, request, flash, redirect
-from api import manageapp
+from api import manageapp, scheduler
 from flask import json
 import requests
 import os
@@ -33,15 +33,6 @@ capacity = 1  # By default the capacity is 1.
 @manageapp.route('/')
 def main():
     return render_template("index.html")
-
-
-@manageapp.route('/api/time')  # just for test (to connect react with python api)
-def get_time():
-    return {
-        'Name': "hazel",
-        "Date": x,
-        "programming": "python"
-    }
 
 
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
@@ -117,27 +108,73 @@ def MemStatistics():
     counter = 0
     for db_statis in my_cursor:
         time.append(str(db_statis[1]))
-        number_of_items.append(db_statis[2])
-        total_size_of_items.append(db_statis[3])
-        number_of_request_served.append(db_statis[4])
-        miss_rate.append(db_statis[5])
-        hit_rate.append(db_statis[6])
-        mem_nodes.append(db_statis[7])
+        mem_nodes.append(db_statis[2])
+        number_of_items.append(db_statis[3])
+        total_size_of_items.append(db_statis[4])
+        number_of_request_served.append(db_statis[5])
+        miss_rate.append(db_statis[6])
+        hit_rate.append(db_statis[7])
+
         counter += 1
     # print(type(time[2]))
     # print(time[0])
 
-    data_to_render = {'number_of_rows': counter,
-                      'time': time,
-                      'num_of_items': number_of_items,
-                      'total_size_of_items': total_size_of_items,
-                      'number_of_request_served': number_of_request_served,
-                      'miss_rate': miss_rate,
-                      'hit_rate': hit_rate,
-                      'nodes': mem_nodes,
-                      }
-    return render_template('mem_statistics.html', data_to_render=data_to_render)
+    data_to_render = {'number_of_rows': counter, 
+                        'time':time, 
+                        'num_of_items':number_of_items, 
+                        'total_size_of_items':total_size_of_items, 
+                        'number_of_request_served':number_of_request_served, 
+                        'miss_rate':miss_rate, 
+                        'hit_rate':hit_rate,
+                        'nodes':mem_nodes,
+                        }
+    return render_template('mem_statistics.html', data_to_render = data_to_render)
 
+
+@scheduler.task('interval', id='job_1', seconds=60)
+def cw_statistics():
+    # dict = {}
+    # self.data = {
+#             'node_num': 0,
+#             'request_num': 0,
+#             'hit_num': 0,
+#             'miss_num': 0,
+#             'lookup_num': 0,
+#             'item_num': 0,
+#             'total_size': 0.0,
+#         }
+    node_res = cw_api.getMetricData(60, 'node_num', 'Average')
+    request_res = cw_api.getMetricData(60, 'request_num', 'Sum')
+    # hit_res = cw_api.getMetricData(60, 'hit_num', 'Sum')
+    # miss_res = cw_api.getMetricData(60, 'miss_num', 'Sum')
+    lookup_res = cw_api.getMetricData(60, 'lookup_num', 'Sum')
+    print("lookup_res: " + str(lookup_res))
+    item_res = cw_api.getMetricData(60, 'item_num', 'Average')
+    size_res = cw_api.getMetricData(60, 'total_size', 'Average')
+    print("node_num_res: " + str(node_res))
+    node_num = int(node_res['Datapoints'][0]['Average'])
+    request_num = request_res['Datapoints'][0]['Sum']
+    # dict['hit_num'] = hit_res['datapoints'][0]
+    # dict['miss_num'] = miss_res['datapoints'][0]
+    # lookup_num= lookup_res['Datapoints'][0]['Sum']
+    item_num = int(item_res['Datapoints'][0]['Average'])
+    total_size = size_res['Datapoints'][0]['Average']
+    cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
+    miss_rate = cw_api.getAverageMetric(60,'miss_num', 'lookup_num')
+    hit_rate = cw_api.getAverageMetric(60, 'hit_num', 'lookup_num')
+
+    mydb = mysql.connector.connect(
+        host=database_credential.db_host,
+        user=database_credential.db_user,
+        passwd=database_credential.db_password,
+    )
+    my_cursor = mydb.cursor()
+    my_cursor.execute(("use {};".format(database_credential.db_name)))
+    sql_insert = f"INSERT INTO memcache_statistics (time, node_num, num_of_items, total_size_of_items, number_of_requests_served, miss_rate, hit_rate ) VALUES ('{cur_time}', {node_num}, {item_num}, {total_size}, {request_num}, {miss_rate}, {hit_rate})"
+    print("sql insert" + sql_insert)
+    my_cursor.execute(sql_insert)#, (cur_time, node_num, item_num, total_size, request_num, miss_rate, hit_rate)))
+    mydb.commit()
+    return 1
 
 @manageapp.route('/resize', methods=['GET'])
 def resize_page():
@@ -216,6 +253,28 @@ def ResizeMemcacheManual():
         print(backend_base_url + str(manager_port) + url_for('resize'))
         requests.post(backend_base_url + str(manager_port) + url_for('resize'),
                       data={'new_node_number': new_node_num})
+        # put_jsonResponse = {}
+        for partition in range(16):
+            if (partition % current_node_num) == (partition % new_node_num):
+                print("Keys in this partition don't need to change node.")
+                continue
+            else:
+                print("Keys in this partition need to change node.")
+                #get the key from the old node and delete the key from old node
+                response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
+                print("response of get_partition_images: " + str(response))
+                jsonResponse = response.json()
+                print("response of get_partition_images: " + str(jsonResponse))
+                image_keys = jsonResponse['image_keys']
+                images = jsonResponse['images'] #encoded image content
+                #send the key to the new node
+                put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
+                put_jsonResponse = put_response.json()
+
+        if put_jsonResponse['success'] == 'true':
+            current_node_num = new_node_num
+        
+        logging.info("current_node_num : " + str(current_node_num))
     return render_template('resize_manual.html',
                            current_node=current_node_num)
 
@@ -247,6 +306,19 @@ def config_auto_scaler():
                 'shrinkRatio': shrinkRatio}
     else:
         return {'success': 'false'}
+            
+        
+        # for node in range(current_node_num):
+        #     try:
+        #         res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
+        #     except requests.exceptions.ConnectionError:
+        #         print("Can't connect to port " + str(node + base_port))
+        # if current_node_num < 8:
+        #     for node in range(current_node_num, 8, 1):
+        #         try:
+        #             res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
+        #         except requests.exceptions.ConnectionError:
+        #             print("Can't connect to port " + str(node + base_port))
 
 
 @manageapp.route('/resize_auto', methods=['GET', 'POST'])
