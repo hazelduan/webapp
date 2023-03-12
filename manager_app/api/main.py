@@ -189,7 +189,6 @@ def resize_memcachePool(size):
     global current_node_num
     new_node_num = int(size)
     if new_node_num != current_node_num:  # reallocate the keys in memcache nodes
-
         for partition in range(16):
             if (partition % current_node_num) == (partition % new_node_num):
                 print("Keys in this partition don't need to change node.")
@@ -216,17 +215,6 @@ def resize_memcachePool(size):
 
         logging.info("current_node_num : " + str(current_node_num))
 
-    for node in range(current_node_num):
-        try:
-            res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
-        except requests.exceptions.ConnectionError:
-            print("Can't connect to port " + str(node + base_port))
-    if current_node_num < 8:
-        for node in range(current_node_num, 8, 1):
-            try:
-                res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
-            except requests.exceptions.ConnectionError:
-                print("Can't connect to port " + str(node + base_port))
     return current_node_num
 
 
@@ -246,30 +234,31 @@ def ResizeMemcacheManual():
     global current_node_num, mode
     if request.method == 'POST':
         requests.post(backend_base_url + str(manager_port) + url_for('set_mode'), data={'mode': 'manual'})
-        new_node_num = request.form['new_node_number']
+        new_node_num = int(request.form['new_node_number'])
         print(backend_base_url + str(manager_port) + url_for('resize'))
         requests.post(backend_base_url + str(manager_port) + url_for('resize'),
-                      data={'new_node_number': new_node_num})
-        # put_jsonResponse = {}
-        for partition in range(16):
-            if (partition % current_node_num) == (partition % new_node_num):
-                print("Keys in this partition don't need to change node.")
-                continue
-            else:
-                print("Keys in this partition need to change node.")
-                #get the key from the old node and delete the key from old node
-                response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
-                print("response of get_partition_images: " + str(response))
-                jsonResponse = response.json()
-                print("response of get_partition_images: " + str(jsonResponse))
-                image_keys = jsonResponse['image_keys']
-                images = jsonResponse['images'] #encoded image content
-                #send the key to the new node
-                put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
-                put_jsonResponse = put_response.json()
+                      data={'new_node_number': str(new_node_num)})
+        put_jsonResponse = {}
+        if new_node_num != current_node_num:
+            for partition in range(16):
+                if (partition % current_node_num) == (partition % new_node_num):
+                    print("Keys in this partition don't need to change node.")
+                    continue
+                else:
+                    print("Keys in this partition need to change node.")
+                    #get the key from the old node and delete the key from old node
+                    response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
+                    print("response of get_partition_images: " + str(response))
+                    jsonResponse = response.json()
+                    print("response of get_partition_images: " + str(jsonResponse))
+                    image_keys = jsonResponse['image_keys']
+                    images = jsonResponse['images'] #encoded image content
+                    #send the key to the new node
+                    put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
+                    put_jsonResponse = put_response.json()
 
-        if put_jsonResponse['success'] == 'true':
-            current_node_num = new_node_num
+            if put_jsonResponse['success'] == 'true':
+                current_node_num = new_node_num
         
         logging.info("current_node_num : " + str(current_node_num))
     return render_template('resize_manual.html',
@@ -303,19 +292,6 @@ def config_auto_scaler():
                 'shrinkRatio': shrinkRatio}
     else:
         return {'success': 'false'}
-            
-        
-        # for node in range(current_node_num):
-        #     try:
-        #         res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
-        #     except requests.exceptions.ConnectionError:
-        #         print("Can't connect to port " + str(node + base_port))
-        # if current_node_num < 8:
-        #     for node in range(current_node_num, 8, 1):
-        #         try:
-        #             res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
-        #         except requests.exceptions.ConnectionError:
-        #             print("Can't connect to port " + str(node + base_port))
 
 
 @manageapp.route('/resize_auto', methods=['GET', 'POST'])
