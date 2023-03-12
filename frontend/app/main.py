@@ -30,16 +30,18 @@ def signal_handler(sig, frame):
 
 
 signal.signal(signal.SIGINT, signal_handler)
-active_node = 8 #by default active node is 8
+active_node = 8  # by default active node is 8
+
+
 def get_active_node():
     active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
     return active_node
 
+
 @webapp.route('/')
 def main():
-
     active_node = get_active_node()
     return render_template("index.html", active_node=active_node)
 
@@ -111,45 +113,50 @@ def UploadImage():
 def ImageLookup():
     if request.method == 'POST':
         image_key = request.form['image_key']
-
-        # MD5 Calculation
-        image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
-        mem_partition = int(image_key_md5[0], 16)  # from hex string to deci int
-        # number of active node should be retrieve from manage app
-        # requests.get(url_for_manage_app, ..)
-        active_node = get_active_node()
-        print('the active node is:' + str(active_node))
-        mem_port = mem_partition % active_node + base_port
-
-        response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
-        jsonResponse = response.json()
-        image_content = jsonResponse['image_content']
-        statistics.add('lookup_num', 1)
-        statistics.add('request_num', 1)
-        if jsonResponse['cache_hit'] == 'true':
-            statistics.add('hit_num', 1)
+        response = ImageLookupForTest(image_key)
+        if response['success'] == 'true':
+            return render_template("display_image.html", image_key=image_key, image_content=response['content'])
         else:
-            statistics.add('miss_num', 1)
-        if image_content != 'not found':
-            print("Look up through memcache port" + str(mem_port))
-            return render_template("display_image.html", image_content=image_content, image_key=image_key)
-        else:
-            ## Interact with database
-            logging.info("------------------------------------")
-            logging.info("Look up through file system")
-            logging.info("------------------------------------")
-            db_image = Images.query.filter_by(image_key=image_key).first()
-            if db_image != None:
-                logging.info("------------------------------------")
-                logging.info("db finding ")
-                logging.info("------------------------------------")
-                obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
-                image_content = base64.b64encode(obj['Body'].read()).decode()
-                # put the key into memcache
-                requests.post(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
-                statistics.add('request_num', 1)
-                return render_template("display_image.html", image_content=image_content, image_key=image_key)
             return "Image not found"
+        # MD5 Calculation
+        # image_key_md5 = hashlib.md5(image_key.encode('utf-8')).hexdigest()
+        # mem_partition = int(image_key_md5[0], 16)  # from hex string to deci int
+        # # number of active node should be retrieve from manage app
+        # # requests.get(url_for_manage_app, ..)
+        # active_node = get_active_node()
+        # print('the active node is:' + str(active_node))
+        # mem_port = mem_partition % active_node + base_port
+        #
+        # response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
+        # jsonResponse = response.json()
+        # image_content = jsonResponse['image_content']
+        # statistics.add('lookup_num', 1)
+        # statistics.add('request_num', 1)
+        # if jsonResponse['cache_hit'] == 'true':
+        #     statistics.add('hit_num', 1)
+        # else:
+        #     statistics.add('miss_num', 1)
+        # if image_content != 'not found':
+        #     print("Look up through memcache port" + str(mem_port))
+        #     return render_template("display_image.html", image_content=image_content, image_key=image_key)
+        # else:
+        #     ## Interact with database
+        #     logging.info("------------------------------------")
+        #     logging.info("Look up through file system")
+        #     logging.info("------------------------------------")
+        #     db_image = Images.query.filter_by(image_key=image_key).first()
+        #     if db_image != None:
+        #         logging.info("------------------------------------")
+        #         logging.info("db finding ")
+        #         logging.info("------------------------------------")
+        #         obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
+        #         image_content = base64.b64encode(obj['Body'].read()).decode()
+        #         # put the key into memcache
+        #         requests.post(backend_base_url + str(mem_port) + '/put',
+        #                       data={'image_key': image_key, 'image_content': image_content})
+        #         statistics.add('request_num', 1)
+        #         return render_template("display_image.html", image_content=image_content, image_key=image_key)
+        #     return "Image not found"
     return render_template('display_image.html')
 
 
@@ -169,15 +176,35 @@ def ImageLookupForTest(key_value):
     response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
     jsonResponse = response.json()
     image_content = jsonResponse['image_content']
-
-    if image_content == 'not found':
+    statistics.add('lookup_num', 1)
+    statistics.add('request_num', 1)
+    if jsonResponse['cache_hit'] == 'true':
+        statistics.add('hit_num', 1)
+    else:
+        statistics.add('miss_num', 1)
+    if jsonResponse['cache_hit'] == 'true':
+        print("Look up through memcache port" + str(mem_port))
+        resp = {
+            "success": "true",
+            "key": image_key,
+            "content": image_content
+        }
+    else:  # Not hit, go find in database
+        # Interact with database
+        logging.info("------------------------------------")
+        logging.info("Look up through file system")
+        logging.info("------------------------------------")
         db_image = Images.query.filter_by(image_key=image_key).first()
         if db_image != None:
+            logging.info("------------------------------------")
+            logging.info("db finding ")
+            logging.info("------------------------------------")
             obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
             image_content = base64.b64encode(obj['Body'].read()).decode()
             # put the key into memcache
-            requests.get(backend_base_url + str(mem_port) + '/put',
-                         data={'image_key': image_key, 'image_content': image_content})
+            requests.post(backend_base_url + str(mem_port) + '/put',
+                          data={'image_key': image_key, 'image_content': image_content})
+            statistics.add('request_num', 1)
             resp = {
                 "success": "true",
                 "key": image_key,
@@ -191,14 +218,37 @@ def ImageLookupForTest(key_value):
                     "message": "image not found"
                 }
             }
-    else:
-        # found the image in cache
-        resp = {
-            "success": "true",
-            "key": image_key,
-            "content": image_content
-        }
     return resp
+
+    # if image_content == 'not found':
+    #     db_image = Images.query.filter_by(image_key=image_key).first()
+    #     if db_image != None:
+    #         obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
+    #         image_content = base64.b64encode(obj['Body'].read()).decode()
+    #         # put the key into memcache
+    #         requests.get(backend_base_url + str(mem_port) + '/put',
+    #                      data={'image_key': image_key, 'image_content': image_content})
+    #         resp = {
+    #             "success": "true",
+    #             "key": image_key,
+    #             "content": image_content
+    #         }
+    #     else:
+    #         resp = {
+    #             "success": "false",
+    #             "error": {
+    #                 "code": "404",
+    #                 "message": "image not found"
+    #             }
+    #         }
+    # else:
+    #     # found the image in cache
+    #     resp = {
+    #         "success": "true",
+    #         "key": image_key,
+    #         "content": image_content
+    #     }
+    # return resp
 
 
 @webapp.route('/api/list_keys_True')
@@ -251,6 +301,7 @@ def CacheClear():
     jsonResponse = response.json()
     return {'success': jsonResponse['success']}
 
+
 @webapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
     # retrieve from manager app
@@ -260,7 +311,6 @@ def StopScheduler():
             res = requests.get(backend_base_url + str(mem_port + base_port) + '/stop_scheduler')
         except requests.exceptions.ConnectionError:
             print(f'port {mem_port + base_port} offline')
-
 
 
 @webapp.route('/api/configure_cache', methods=['POST'])
@@ -320,17 +370,33 @@ def Get_num_Nodes():
     )
     return response
 
+
 @webapp.route('/api/getRate', methods=['POST'])
 def get_rate():
     rate_type = request.args.get('rate')
     if rate_type == 'miss':
-        rate = 'miss'
+        miss_num = cw_api.getMetricData(60, "miss_num", "Sum")['Datapoints'][0]['Sum']
+        request_num = cw_api.getMetricData(60, "request_num", "Sum")['Datapoints'][0]['Sum']
+        if request_num == 0:
+            rate_value = 0  # avoid division by zero
+        else:
+            print('miss_num: ', miss_num)
+            print('request_num: ', request_num)
+            rate_value = float(miss_num) / request_num
     elif rate_type == 'hit':
         rate = 'hit'
+        hit_num = cw_api.getMetricData(60, "hit_num", "Sum")['Datapoints'][0]['Sum']
+        request_num = cw_api.getMetricData(60, "request_num", "Sum")['Datapoints'][0]['Sum']
+        if request_num == 0:
+            rate_value = 0  # avoid division by zero
+        else:
+            print('hit_num: ', hit_num)
+            print('request_num: ', request_num)
+            rate_value = float(hit_num) / request_num
     else:
         print('Invalid rate type')
-    # getAverageMetric
-    resp = {'success': 'true', 'rate': rate}
+    print(rate_value)
+    resp = {'success': 'true', 'rate': rate_type, 'value': rate_value}
     response = webapp.response_class(
         response=json.dumps(resp),
         status=200,
@@ -338,7 +404,8 @@ def get_rate():
     )
     return response
 
-@scheduler.task('interval', id='job_1', seconds=10)
+
+@scheduler.task('interval', id='job_1', seconds=5)
 @webapp.route("/pool_statistics", methods=['GET'])
 def Statistics():
     # if statistics.data['request_num'] == 0:
@@ -347,7 +414,7 @@ def Statistics():
     # else:
     #     statistics.data['hit_rate'] = statistics.data['hit_num'] / statistics.data['request_num']
     #     statistics.data['miss_rate'] = statistics.data['miss_num'] / statistics.data['request_num']
-    statistics.add('node_num',get_active_node())
+    statistics.add('node_num', get_active_node())
     for node in range(statistics.get('node_num')):
         try:
             res = requests.get(backend_base_url + str(node + base_port) + '/get_item_statistics')
@@ -357,9 +424,9 @@ def Statistics():
         except requests.exceptions.ConnectionError:
             print(f'port {node + base_port} offline')
     # provide current time to mysql time format
-    #cur_time= datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
+    # cur_time= datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
 
-    #store the statistics in cloudwatch
+    # store the statistics in cloudwatch
     store_statistics_in_cloudwatch(statistics.get_all())
     statistics.clear()
 

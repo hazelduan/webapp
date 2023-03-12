@@ -131,7 +131,7 @@ def MemStatistics():
     return render_template('mem_statistics.html', data_to_render = data_to_render)
 
 
-@scheduler.task('interval', id='job_1', seconds=30)
+@scheduler.task('interval', id='job_1', seconds=60)
 def cw_statistics():
     # dict = {}
     # self.data = {
