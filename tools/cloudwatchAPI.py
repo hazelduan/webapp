@@ -14,7 +14,7 @@ class cloudwatchAPI():
     def __init__(self):
         self.client = boto3.client('cloudwatch', region_name='us-east-1')
     
-    def putMetricData(self, data, metric_label):
+    def putMetricData(self, value, metric_label):
         response = self.client.put_metric_data(
             Namespace='memcache',
             MetricData=[
@@ -26,8 +26,8 @@ class cloudwatchAPI():
                             'Value': 'statistics'
                         },
                     ],
-                    'Value': data,
-                    'Unit': 'Percent'
+                    'Value': value,
+                    'Unit': 'None'
                 },
             ]
         )
@@ -56,7 +56,7 @@ class cloudwatchAPI():
             EndTime = datetime.datetime.utcnow(),
             Period = 60,
             Statistics = [statistics],
-            Unit = 'Percent'
+            Unit = 'None'
         )
 
         return response
@@ -66,11 +66,14 @@ class cloudwatchAPI():
 
         res1 = self.getMetricData(seconds, metric_label1, 'Sum')# miss_num or hit_num
         res2 = self.getMetricData(seconds, metric_label2, 'Sum')# lookup_num
+        if len(res1['Datapoints']) == 0 or len(res2['Datapoints']) == 0:
+            return 0
+        
+        res1_num = res1['Datapoints'][0]['Sum']
+        lookup_num = res2['Datapoints'][0]['Sum']
 
-        res1_num = res1['Datapoints'][0]
-        lookup_num = res2['Datapoints'][0]
-        if  lookup_num['Sum'] > 0:
-            rate = res1_num['Sum'] / lookup_num['Sum']
+        if  lookup_num > 0:
+            rate = res1_num / lookup_num
         else:
             rate = 0
 

@@ -40,12 +40,16 @@ def put():
     image_key = request.form.get('image_key')
     image_content = request.form.get('image_content')
     memcache.requests_num += 1
-
+    logging.info("------------------------------------")
+    logging.info("PPPPUUUUUUUUUUUUTTTTT BBB")
+    logging.info("------------------------------------")
     if image_key in memcache.keys():
         memcache.pop(image_key)  # invalidate the key in memcache to update key-value
 
     memcache[image_key] = image_content
-
+    logging.info("------------------------------------")
+    logging.info("IIIIIIIIIIIIIIIIIIIIIIIN PPPPPP")
+    logging.info("------------------------------------")
     response = {
         "success": "true",
         "key": image_key
@@ -58,8 +62,9 @@ def get():
     image_key = request.form.get('image_key')
     memcache.requests_num += 1
     memcache.cache_lookup += 1
-
+    logging.info("BBBBBBBEFORE")
     if image_key in memcache:
+        logging.info("AAAAAAAAAAAAAFTER")
         image_content = memcache[image_key]
         # decoded_image = image_content.decode()
         memcache.cache_hit +=1

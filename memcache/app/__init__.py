@@ -50,7 +50,6 @@ class CacheDict(OrderedDict):
     def __setitem__(self, __key, __value) -> None:
         # if self.cur_size + int(len(__value) / 1024) > self.cache_size:
         #     return
-        
         if self.cache_size == 0:
             return
         super().__setitem__(__key, __value)

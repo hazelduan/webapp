@@ -30,8 +30,7 @@ def signal_handler(sig, frame):
 
 
 signal.signal(signal.SIGINT, signal_handler)
-
-# active_node = 8 #by default active node is 8
+active_node = 8 #by default active node is 8
 def get_active_node():
     active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
@@ -127,7 +126,7 @@ def ImageLookup():
         image_content = jsonResponse['image_content']
         statistics.add('lookup_num', 1)
         statistics.add('request_num', 1)
-        if jsonResponse['cache_hit'] == 'True':
+        if jsonResponse['cache_hit'] == 'true':
             statistics.add('hit_num', 1)
         else:
             statistics.add('miss_num', 1)
@@ -136,13 +135,18 @@ def ImageLookup():
             return render_template("display_image.html", image_content=image_content, image_key=image_key)
         else:
             ## Interact with database
-            print("Look up through file system")
+            logging.info("------------------------------------")
+            logging.info("Look up through file system")
+            logging.info("------------------------------------")
             db_image = Images.query.filter_by(image_key=image_key).first()
             if db_image != None:
+                logging.info("------------------------------------")
+                logging.info("db finding ")
+                logging.info("------------------------------------")
                 obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
                 image_content = base64.b64encode(obj['Body'].read()).decode()
                 # put the key into memcache
-                requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+                requests.post(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
                 statistics.add('request_num', 1)
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
             return "Image not found"
@@ -257,21 +261,7 @@ def StopScheduler():
         except requests.exceptions.ConnectionError:
             print(f'port {mem_port + base_port} offline')
 
-# @webapp.route("/update_node", methods=['POST'])
-# def UpdateNode():
-#     global active_node
-#     active_node = int(request.form['active_node'])
 
-#     return redirect(url_for('main'))
-
-
-# @webapp.route("/delete_ec2", methods=['GET'])
-# def DeleteEC2():
-#     instances = ec2.instances.all()
-
-#     for instance in instances:
-#         ec2.instances.filter(InstanceIds=[instance.id]).terminate()
-#     return 'delete success!'
 
 @webapp.route('/api/configure_cache', methods=['POST'])
 def ConfigureCache():
@@ -347,6 +337,7 @@ def get_rate():
         mimetype='application/json'
     )
     return response
+
 @scheduler.task('interval', id='job_1', seconds=10)
 @webapp.route("/pool_statistics", methods=['GET'])
 def Statistics():
@@ -374,4 +365,5 @@ def Statistics():
 
 
 def store_statistics_in_cloudwatch(data):
+    logging.info(str(data))
     cw_api.putMultipleMetric(data)

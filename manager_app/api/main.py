@@ -131,7 +131,7 @@ def MemStatistics():
     return render_template('mem_statistics.html', data_to_render = data_to_render)
 
 
-@scheduler.task('interval', id='job_1', seconds=60)
+@scheduler.task('interval', id='job_1', seconds=30)
 def cw_statistics():
     # dict = {}
     # self.data = {
@@ -143,25 +143,30 @@ def cw_statistics():
 #             'item_num': 0,
 #             'total_size': 0.0,
 #         }
-    node_res = cw_api.getMetricData(60, 'node_num', 'Average')
-    request_res = cw_api.getMetricData(60, 'request_num', 'Sum')
-    # hit_res = cw_api.getMetricData(60, 'hit_num', 'Sum')
-    # miss_res = cw_api.getMetricData(60, 'miss_num', 'Sum')
-    lookup_res = cw_api.getMetricData(60, 'lookup_num', 'Sum')
-    print("lookup_res: " + str(lookup_res))
-    item_res = cw_api.getMetricData(60, 'item_num', 'Average')
-    size_res = cw_api.getMetricData(60, 'total_size', 'Average')
-    print("node_num_res: " + str(node_res))
-    node_num = int(node_res['Datapoints'][0]['Average'])
-    request_num = request_res['Datapoints'][0]['Sum']
-    # dict['hit_num'] = hit_res['datapoints'][0]
-    # dict['miss_num'] = miss_res['datapoints'][0]
-    # lookup_num= lookup_res['Datapoints'][0]['Sum']
-    item_num = int(item_res['Datapoints'][0]['Average'])
-    total_size = size_res['Datapoints'][0]['Average']
+    time_slice = 30 # s
+    node_res = cw_api.getMetricData(time_slice, 'node_num', 'Average')
+    request_res = cw_api.getMetricData(time_slice, 'request_num', 'Sum')
+    lookup_res = cw_api.getMetricData(time_slice, 'lookup_num', 'Sum')
+    item_res = cw_api.getMetricData(time_slice, 'item_num', 'Average')
+    size_res = cw_api.getMetricData(time_slice, 'total_size', 'Average')
+
+    logging.info("lookup_res: " + str(lookup_res))
+    logging.info("node_num_res: " + str(node_res))
+
+    def get_metric_res(res, label):
+        if len(res['Datapoints']) > 0:
+            return res['Datapoints'][0][label]
+        
+        return 0
+    
+    node_num = int(get_metric_res(node_res, 'Average'))
+    request_num = get_metric_res(request_res, 'Sum')
+    item_num = int(get_metric_res(item_res, 'Average'))
+    total_size = get_metric_res(size_res, 'Average')
     cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
-    miss_rate = cw_api.getAverageMetric(60,'miss_num', 'lookup_num')
-    hit_rate = cw_api.getAverageMetric(60, 'hit_num', 'lookup_num')
+
+    miss_rate = cw_api.getAverageMetric(time_slice,'miss_num', 'lookup_num')
+    hit_rate = cw_api.getAverageMetric(time_slice, 'hit_num', 'lookup_num')
 
     mydb = mysql.connector.connect(
         host=database_credential.db_host,
@@ -171,10 +176,9 @@ def cw_statistics():
     my_cursor = mydb.cursor()
     my_cursor.execute(("use {};".format(database_credential.db_name)))
     sql_insert = f"INSERT INTO memcache_statistics (time, node_num, num_of_items, total_size_of_items, number_of_requests_served, miss_rate, hit_rate ) VALUES ('{cur_time}', {node_num}, {item_num}, {total_size}, {request_num}, {miss_rate}, {hit_rate})"
-    print("sql insert" + sql_insert)
+    logging.info("sql insert " + sql_insert)
     my_cursor.execute(sql_insert)#, (cur_time, node_num, item_num, total_size, request_num, miss_rate, hit_rate)))
     mydb.commit()
-    return 1
 
 @manageapp.route('/resize', methods=['GET'])
 def resize_page():
@@ -185,14 +189,7 @@ def resize_memcachePool(size):
     global current_node_num
     new_node_num = int(size)
     if new_node_num != current_node_num:  # reallocate the keys in memcache nodes
-        # if new_node_num > current_node_num: #add new nodes
-        #     for node in range(current_node_num, new_node_num):
-        #         try:
-        #             res = requests.get(backend_base_url + str(node + base_port) + '/start_scheduler')
-        #         except requests.exceptions.ConnectionError:
-        #             print("Can't connect to port " + str(node + base_port))
 
-        # put_jsonResponse = {}
         for partition in range(16):
             if (partition % current_node_num) == (partition % new_node_num):
                 print("Keys in this partition don't need to change node.")
