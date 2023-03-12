@@ -22,7 +22,7 @@ def checkMissRate():
     global shrink_ratio
 
     # get average miss rate from CloudWatch
-    average_miss_rate = cw_api.getAverageMetric(active_node=active_node, seconds=60, metric_name='miss_rate')
+    average_miss_rate = cw_api.getAverageMetric(seconds=60, metric_label1='miss_num', metric_label2='lookup_num')
 
     if average_miss_rate > max_miss_thres:      # expand the nodes
         new_active_node = int(active_node * expand_ratio)

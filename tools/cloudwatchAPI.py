@@ -1,11 +1,20 @@
 import boto3
 import datetime
 
+# self.data = {
+#             'node_num': 0,
+#             'request_num': 0,
+#             'hit_num': 0,
+#             'miss_num': 0,
+#             'lookup_num': 0,
+#             'item_num': 0,
+#             'total_size': 0.0,
+#         }
 class cloudwatchAPI():
     def __init__(self):
         self.client = boto3.client('cloudwatch', region_name='us-east-1')
     
-    def putMetricData(self, node, data, metric_label):
+    def putMetricData(self, data, metric_label):
         response = self.client.put_metric_data(
             Namespace='memcache',
             MetricData=[
@@ -13,8 +22,8 @@ class cloudwatchAPI():
                     'MetricName': metric_label,
                     'Dimensions': [
                         {
-                            'Name': 'node',
-                            'Value': str(node)
+                            'Name': 'Statistics',
+                            'Value': 'statistics'
                         },
                     ],
                     'Value': data,
@@ -24,41 +33,45 @@ class cloudwatchAPI():
         )
         return response
     
-    def putMultipleMetric(self, node, miss_rate, hit_rate, number_of_items, size_of_items, number_of_requests):
-        self.putMetricData(node, miss_rate, 'miss_rate')
-        self.putMetricData(node, hit_rate, 'hit_rate')
-        self.putMetricData(node, number_of_items, 'number_of_items')
-        self.putMetricData(node, size_of_items, 'size_of_items')
-        self.putMetricData(node, number_of_requests, 'number_of_requests')
+    def putMultipleMetric(self, data):
+        self.putMetricData(data['node_num'], 'node_num')
+        self.putMetricData(data['request_num'], 'request_num')
+        self.putMetricData(data['hit_num'], 'hit_num')
+        self.putMetricData(data['miss_num'], 'miss_num')
+        self.putMetricData(data['lookup_num'], 'lookup_num')
+        self.putMetricData(data['item_num'], 'item_num')
+        self.putMetricData(data['total_size'], 'total_size')
     
-    def getMetricData(self, node, seconds, metric_label):
+    
+    def getMetricData(self, seconds, metric_label, statistics):
         response = self.client.get_metric_statistics(
             Namespace='memcache',
             MetricName=metric_label,
             Dimensions=[{
-                'Name': 'node',
-                'Value': str(node)
+                'Name': 'Statistics',
+                'Value': 'statistics'
             }],
 
             StartTime = datetime.datetime.utcnow() - datetime.timedelta(seconds=seconds),
             EndTime = datetime.datetime.utcnow(),
             Period = 60,
-            Statistics = ['Average'],
+            Statistics = [statistics],
             Unit = 'Percent'
         )
 
         return response
 
 
-    def getAverageMetric(self, active_node, seconds, metric_label):
-        miss_rates = []
-        for node in range(1, active_node+1):
-            res = self.getMetricData(node, seconds, metric_label)
-            if len(res['Datapoints']) > 0:
-                for miss_rate in res['Datapoints']:
-                    miss_rates.append(miss_rate['Average'])
-        
-        if len(miss_rates) > 0:
-            return (sum(miss_rates) / len(miss_rates))
-        
-        return 0
+    def getAverageMetric(self, seconds, metric_label1, metric_label2):
+
+        res1 = self.getMetricData(seconds, metric_label1, 'Sum')# miss_num or hit_num
+        res2 = self.getMetricData(seconds, metric_label2, 'Sum')# lookup_num
+
+        res1_num = res1['Datapoints'][0]
+        lookup_num = res2['Datapoints'][0]
+        if  lookup_num['Sum'] > 0:
+            rate = res1_num['Sum'] / lookup_num['Sum']
+        else:
+            rate = 0
+
+        return rate

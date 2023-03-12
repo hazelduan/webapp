@@ -3,19 +3,34 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 import boto3
 import mysql.connector
+from flask_apscheduler import APScheduler
 import sys
 sys.path.append('..')
 sys.path.append('..')
 from database import database_credential
+<<<<<<< HEAD
 from tools import cloudwatchAPI
 
+=======
+from pathlib import Path
+from tools import cloudwatchAPI
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 
 webapp = Flask(__name__)
 
 
 webapp.config['SECRET_KEY'] = 'dev' 
 
+# Scheduler
 
+class Config(object):
+    SCHEDULER_API_ENABLED = True
+
+
+webapp.config.from_object(Config())
+scheduler = APScheduler()
+scheduler.init_app(webapp)
+scheduler.start()
 
 db_user = database_credential.db_user
 db_password = database_credential.db_password
@@ -66,10 +81,45 @@ my_cursor = mydb.cursor()
 my_cursor.execute(("USE {};".format(database_credential.db_name)))
 my_cursor.execute(("TRUNCATE memcache_statistics;"))
 
+# data accumulator
+class DataAccumulator:
+    def __init__(self):
+        self.data = {
+            'node_num': 0,
+            'request_num': 0,
+            'hit_num': 0,
+            'miss_num': 0,
+            'lookup_num': 0,
+            'item_num': 0,
+            'total_size': 0.0,
+        }
+    def add(self, key, value):
+        if key in self.data:
+            self.data[key] += value
+        else:
+            self.data[key] = value
+    def get(self, key):
+        return self.data[key]
+    def clear(self):
+        self.data = {
+            'node_num': 0,
+            'request_num': 0,
+            'hit_num': 0,
+            'miss_num': 0,
+            'lookup_num': 0,
+            'item_num': 0,
+            'total_size': 0.0,
+        }
+    def get_all(self):
+        return self.data
+
+statistics = DataAccumulator()
+
 # # creating ec2 instance
 # ec2 = boto3.resource('ec2')
 # ec2.create_instances(ImageId='ami-006dcf34c09e50022', MinCount=1, MaxCount=1,
 #                      InstanceType='t2.micro', SubnetId='subnet-03cdead617e2d0d41')
+cw_api = cloudwatchAPI.cloudwatchAPI()
 
 cw_api = cloudwatchAPI.cloudwatchAPI()
 

@@ -8,7 +8,7 @@ from database import database_credential
 from configuration import base_path, file_system_path, backend_base_url, base_port, manager_port
 
 from flask import render_template, url_for, request, flash, redirect
-from app import webapp
+from app import webapp, cw_api, statistics, scheduler
 from flask import json
 import requests
 import os
@@ -17,6 +17,7 @@ from pathlib import Path
 import base64
 import hashlib
 import signal
+import datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,15 +31,26 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+<<<<<<< HEAD
 active_node = 8 #by default active node is 8
 
 
 @webapp.route('/')
 def main():
     global active_node
+=======
+# active_node = 8 #by default active node is 8
+def get_active_node():
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
     active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
+    return active_node
+
+@webapp.route('/')
+def main():
+
+    active_node = get_active_node()
     return render_template("index.html", active_node=active_node)
 
 
@@ -86,9 +98,13 @@ def UploadImage():
     mem_partition = int(image_key_md5[0], 16)  # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
+<<<<<<< HEAD
     active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
+=======
+    active_node = get_active_node()
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
     response = requests.post(backend_base_url + str(mem_port) + "/put",
@@ -117,16 +133,29 @@ def ImageLookup():
         mem_partition = int(image_key_md5[0], 16)  # from hex string to deci int
         # number of active node should be retrieve from manage app
         # requests.get(url_for_manage_app, ..)
+<<<<<<< HEAD
         active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
         jsonNodeResponse = active_node_response.json()
         active_node = jsonNodeResponse['active_node']
+=======
+        active_node = get_active_node()
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
         print('the active node is:' + str(active_node))
         mem_port = mem_partition % active_node + base_port
 
         response = requests.get(backend_base_url + str(mem_port) + "/get", data={'image_key': image_key})
         jsonResponse = response.json()
         image_content = jsonResponse['image_content']
+<<<<<<< HEAD
 
+=======
+        statistics.add('lookup_num', 1)
+        statistics.add('request_num', 1)
+        if jsonResponse['cache_hit'] == 'True':
+            statistics.add('hit_num', 1)
+        else:
+            statistics.add('miss_num', 1)
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
         if image_content != 'not found':
             print("Look up through memcache port" + str(mem_port))
             return render_template("display_image.html", image_content=image_content, image_key=image_key)
@@ -138,8 +167,13 @@ def ImageLookup():
                 obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
                 image_content = base64.b64encode(obj['Body'].read()).decode()
                 # put the key into memcache
+<<<<<<< HEAD
                 requests.get(backend_base_url + str(mem_port) + '/put',
                              data={'image_key': image_key, 'image_content': image_content})
+=======
+                requests.get(backend_base_url + str(mem_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
+                statistics.add('request_num', 1)
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
             return "Image not found"
     return render_template('display_image.html')
@@ -154,9 +188,13 @@ def ImageLookupForTest(key_value):
     mem_partition = int(image_key_md5[0], 16)  # from hex string to deci int
     # number of active node should be retrieve from manage app
     # requests.get(url_for_manage_app, ..)
+<<<<<<< HEAD
     active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
+=======
+    active_node = get_active_node()
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
 
@@ -229,9 +267,7 @@ def DeleteAllKeys():
     db.session.commit()
 
     ## Delete from all the memcache
-    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
-    jsonNodeResponse = active_node_response.json()
-    active_node = jsonNodeResponse['active_node']
+    active_node = get_active_node()
     for i in range(active_node):
         response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
 
@@ -239,6 +275,7 @@ def DeleteAllKeys():
     return {'success': jsonResponse['success']}
 
 
+<<<<<<< HEAD
 # @webapp.route('/memcache_option', methods=['GET', 'POST'])
 # def MemcacheOption():
 #     # should configure from manager app, temporarily won't delete it as a backup
@@ -262,14 +299,17 @@ def DeleteAllKeys():
 #                             memsize = capacity
 #     )
 
+=======
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 @webapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
-    active_node = 8
+    active_node = get_active_node()
     for i in range(active_node):
         response = requests.get(backend_base_url + str(i + base_port) + '/cache_clear')
     jsonResponse = response.json()
     return {'success': jsonResponse['success']}
 
+<<<<<<< HEAD
 
 # @webapp.route('/memcache_statistics', methods=['GET'])
 # def MemStatistics():
@@ -314,25 +354,32 @@ def CacheClear():
 #                         'nodes':mem_nodes}
 #     return render_template('mem_statistics.html', data_to_render = data_to_render)
 
+=======
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 @webapp.route('/stop_scheduler', methods=['GET'])
 def StopScheduler():
     # retrieve from manager app
-    active_node_response = requests.get(backend_base_url + str(manager_port) + '/get')
-    jsonNodeResponse = active_node_response.json()
-    active_node = jsonNodeResponse['active_node']
+    active_node = get_active_node()
     for mem_port in range(active_node):
         try:
             res = requests.get(backend_base_url + str(mem_port + base_port) + '/stop_scheduler')
         except requests.exceptions.ConnectionError:
             print(f'port {mem_port + base_port} offline')
 
+<<<<<<< HEAD
 
 @webapp.route("/update_node", methods=['POST'])
 def UpdateNode():
     global active_node
     active_node = int(request.form['active_node'])
+=======
+# @webapp.route("/update_node", methods=['POST'])
+# def UpdateNode():
+#     global active_node
+#     active_node = int(request.form['active_node'])
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 
-    return redirect(url_for('main'))
+#     return redirect(url_for('main'))
 
 
 # @webapp.route("/delete_ec2", methods=['GET'])
@@ -342,6 +389,7 @@ def UpdateNode():
 #     for instance in instances:
 #         ec2.instances.filter(InstanceIds=[instance.id]).terminate()
 #     return 'delete success!'
+<<<<<<< HEAD
 
 @webapp.route('/api/configure_cache', methods=['POST'])
 def ConfigureCache():
@@ -417,3 +465,33 @@ def get_rate():
         mimetype='application/json'
     )
     return response
+=======
+@scheduler.task('interval', id='job_1', seconds=10)
+@webapp.route("/pool_statistics", methods=['GET'])
+def Statistics():
+    # if statistics.data['request_num'] == 0:
+    #     statistics.data['hit_rate'] = 0
+    #     statistics.data['miss_rate'] = 0
+    # else:
+    #     statistics.data['hit_rate'] = statistics.data['hit_num'] / statistics.data['request_num']
+    #     statistics.data['miss_rate'] = statistics.data['miss_num'] / statistics.data['request_num']
+    statistics.add('node_num',get_active_node())
+    for node in range(statistics.get('node_num')):
+        try:
+            res = requests.get(backend_base_url + str(node + base_port) + '/get_item_statistics')
+            jsonResponse = res.json()
+            statistics.add('item_num', int(jsonResponse['number_of_items']))
+            statistics.add('total_size', float(jsonResponse['total_size']))
+        except requests.exceptions.ConnectionError:
+            print(f'port {node + base_port} offline')
+    # provide current time to mysql time format
+    #cur_time= datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
+
+    #store the statistics in cloudwatch
+    store_statistics_in_cloudwatch(statistics.get_all())
+    statistics.clear()
+
+
+def store_statistics_in_cloudwatch(data):
+    cw_api.putMultipleMetric(data)
+>>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
