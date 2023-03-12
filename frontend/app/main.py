@@ -100,7 +100,7 @@ def UploadImage():
     active_node = jsonNodeResponse['active_node'] 
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
-    response = requests.get(public_ips[mem_partition % active_node] + ':5001' + "/put", data={'image_key': image_key, 'image_content': image_content})
+    response = requests.get(public_ips[mem_partition % active_node] + ':' + str(base_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
     jsonResponse = response.json()
 
@@ -133,7 +133,7 @@ def ImageLookup():
         print('the active node is:' + str(active_node))
         mem_port = mem_partition % active_node + base_port
 
-        response = requests.get(public_ips[mem_partition % active_node] + ':5001' + "/get", data={'image_key': image_key})
+        response = requests.get(public_ips[mem_partition % active_node] + ':' + str(base_port) + "/get", data={'image_key': image_key})
         jsonResponse = response.json()
         image_content = jsonResponse['image_content']
         
@@ -148,7 +148,7 @@ def ImageLookup():
                 obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
                 image_content = base64.b64encode(obj['Body'].read()).decode()
                 # put the key into memcache
-                requests.get(public_ips[mem_partition % active_node] + ':5001' + '/put', data={'image_key': image_key, 'image_content':image_content})
+                requests.get(public_ips[mem_partition % active_node] + ':' + str(base_port) + '/put', data={'image_key': image_key, 'image_content':image_content})
                 return render_template("display_image.html", image_content=image_content, image_key=image_key)
             return "Image not found"
     return render_template('display_image.html')
@@ -169,7 +169,7 @@ def ImageLookupForTest(key_value):
     print('the active node is:' + str(active_node))
     mem_port = mem_partition % active_node + base_port
 
-    response = requests.get(public_ips[mem_partition % active_node] + ':5001' + "/get", data={'image_key': image_key})
+    response = requests.get(public_ips[mem_partition % active_node] + ':' + str(base_port) + "/get", data={'image_key': image_key})
     jsonResponse = response.json()
     image_content = jsonResponse['image_content']
 
@@ -179,7 +179,7 @@ def ImageLookupForTest(key_value):
             obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
             image_content = base64.b64encode(obj['Body'].read()).decode()
             # put the key into memcache
-            requests.get(public_ips[mem_partition % active_node] + ':5001' + '/put', data={'image_key': image_key, 'image_content': image_content})
+            requests.get(public_ips[mem_partition % active_node] + ':' + str(base_port) + '/put', data={'image_key': image_key, 'image_content': image_content})
             resp = {
                 "success" : "true",
                 "key" : [image_key],
@@ -241,7 +241,7 @@ def DeleteAllKeys():
     jsonNodeResponse = active_node_response.json()
     active_node = jsonNodeResponse['active_node']
     for i in range(active_node):
-        response = requests.get(public_ips[i] + ':5001' + '/cache_clear')
+        response = requests.get(public_ips[i] + ':' + str(base_port) + '/cache_clear')
     jsonResponse = response.json()
     return {'success':jsonResponse['success']}
 
@@ -273,7 +273,7 @@ def DeleteAllKeys():
 def CacheClear():
     active_node = 8
     for i in range(active_node):
-        response = requests.get(public_ips[i] + ':5001' + '/cache_clear')
+        response = requests.get(public_ips[i] + ':' + str(base_port) + '/cache_clear')
     jsonResponse = response.json()
     return {'success' : jsonResponse['success']}
 
@@ -329,7 +329,7 @@ def StopScheduler():
     active_node = jsonNodeResponse['active_node']
     for mem_port in range(active_node):
         try:
-            res = requests.get(public_ips[mem_port] + ':5001' + '/stop_scheduler')
+            res = requests.get(public_ips[mem_port] + ':' + str(base_port) + '/stop_scheduler')
         except requests.exceptions.ConnectionError:
             print(f'port {mem_port + base_port} offline')
 

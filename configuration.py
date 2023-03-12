@@ -7,7 +7,7 @@ backend_base_url = 'http://127.0.0.1:'
 frontend_port = 5000
 base_port = 5001  #memcache base port 
 auto_scaler_port = 5020
-manager_port = 5001
+manager_port = 8001
 EC2_AMI = 'ami-080ff70d8f5b80ba5'
 EC2_NODE_ID = ['i-011344a69579f4aba',
                'i-028f59ff595181eea',
