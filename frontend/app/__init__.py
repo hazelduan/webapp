@@ -116,8 +116,6 @@ statistics = DataAccumulator()
 #                      InstanceType='t2.micro', SubnetId='subnet-03cdead617e2d0d41')
 cw_api = cloudwatchAPI.cloudwatchAPI()
 
-cw_api = cloudwatchAPI.cloudwatchAPI()
-
 from app import main
 
 
