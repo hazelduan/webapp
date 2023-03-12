@@ -296,7 +296,7 @@ def ConfigureCache():
     else:
         translated_policy = policy
     requests.post(backend_base_url + str(manager_port) + '/memcache_option',
-                  data={'capacity': cacheSize, 'policy': translated_policy})
+                  data={'capacity': str(int(cacheSize) * 1024), 'policy': translated_policy})
     if expRatio != None and shrinkRatio != None and maxMiss != None and minMiss != None:
         # Set expRatio, shrinkRatio, maxMiss, and minMiss
         response = requests.post(backend_base_url + str(manager_port) + '/config_auto_scaler',
