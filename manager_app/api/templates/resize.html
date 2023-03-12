@@ -27,17 +27,35 @@
         <span class="slider round"></span>
     </label>
 </div>
+<div>
+    <h1>Current Mode:</h1>
+    <h1 id = 'status'>{{ mode }}</h1>
+</div>
 
 <script>
     var toggle = document.getElementById('myToggle');
     toggle.addEventListener('change', function(event) {
         if (event.target.checked) {
+            let xhttp = new XMLHttpRequest();
+            xhttp.open('POST', "{{url_for('set_mode')}}");
+            //alert("{{url_for('set_mode')}}");
+            let formData = new FormData(); // creates an object, optionally fill from <form>
+            formData.append('mode', 'auto');
+            xhttp.send(formData);
+            //alert(xhttp.responseText);
             // If the toggle button is on, can click Auto Resize button
+            document.getElementById("status").innerHTML = "auto";
             // window.location.href = "{{ url_for('ResizeMemcacheAuto')}}";
-            alert("Auto mode is on now.")
+            //alert("Auto mode is on now.")
         } else {
-            // window.location.href = "{{ url_for('ResizeMemcacheManual')}}";
-            alert("Auto mode is off now.")
+            let xhttp = new XMLHttpRequest();
+            xhttp.open('POST', "{{url_for('set_mode')}}");
+            let formData = new FormData(); // creates an object, optionally fill from <form>
+            formData.append('mode', 'manual');
+            xhttp.send(formData);
+            //window.location.href = "{{ url_for('ResizeMemcacheManual')}}";
+            document.getElementById("status").innerHTML = "manual";
+            //alert("Auto mode is off now.")
         }
     });
 </script>
