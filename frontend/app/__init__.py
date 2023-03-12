@@ -8,13 +8,8 @@ import sys
 sys.path.append('..')
 sys.path.append('..')
 from database import database_credential
-<<<<<<< HEAD
 from tools import cloudwatchAPI
 
-=======
-from pathlib import Path
-from tools import cloudwatchAPI
->>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 
 webapp = Flask(__name__)
 

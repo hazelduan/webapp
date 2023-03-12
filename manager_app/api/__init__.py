@@ -12,17 +12,12 @@ from pathlib import Path
 # from bintrees.rbtree import RBTree
 
 from tools import cloudwatchAPI
-<<<<<<< HEAD
-=======
 from flask_apscheduler import APScheduler
->>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 
 manageapp = Flask(__name__)
 
 manageapp.config['SECRET_KEY'] = 'dev' 
 
-<<<<<<< HEAD
-=======
 class Config(object):
     SCHEDULER_API_ENABLED = True
 
@@ -32,7 +27,6 @@ scheduler = APScheduler()
 scheduler.init_app(manageapp)
 scheduler.start()
 
->>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 db_user = database_credential.db_user
 db_password = database_credential.db_password
 db_host = database_credential.db_host

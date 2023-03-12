@@ -262,10 +262,31 @@ def ResizeMemcacheManual():
         print(backend_base_url + str(manager_port) + url_for('resize'))
         requests.post(backend_base_url + str(manager_port) + url_for('resize'),
                       data={'new_node_number': new_node_num})
+        # put_jsonResponse = {}
+        for partition in range(16):
+            if (partition % current_node_num) == (partition % new_node_num):
+                print("Keys in this partition don't need to change node.")
+                continue
+            else:
+                print("Keys in this partition need to change node.")
+                #get the key from the old node and delete the key from old node
+                response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
+                print("response of get_partition_images: " + str(response))
+                jsonResponse = response.json()
+                print("response of get_partition_images: " + str(jsonResponse))
+                image_keys = jsonResponse['image_keys']
+                images = jsonResponse['images'] #encoded image content
+                #send the key to the new node
+                put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
+                put_jsonResponse = put_response.json()
+
+        if put_jsonResponse['success'] == 'true':
+            current_node_num = new_node_num
+        
+        logging.info("current_node_num : " + str(current_node_num))
     return render_template('resize_manual.html',
                            current_node=current_node_num)
 
-<<<<<<< HEAD
 @manageapp.route("/config_auto_scaler", methods=['POST'])
 def config_auto_scaler():
     global current_node_num
@@ -294,29 +315,7 @@ def config_auto_scaler():
                 'shrinkRatio': shrinkRatio}
     else:
         return {'success': 'false'}
-=======
-            # put_jsonResponse = {}
-            for partition in range(16):
-                if (partition % current_node_num) == (partition % new_node_num):
-                    print("Keys in this partition don't need to change node.")
-                    continue
-                else:
-                    print("Keys in this partition need to change node.")
-                    #get the key from the old node and delete the key from old node
-                    response = requests.get(backend_base_url + str(base_port + (partition % current_node_num)) + '/get_partition_images', data={'partition': str(partition)})
-                    print("response of get_partition_images: " + str(response))
-                    jsonResponse = response.json()
-                    print("response of get_partition_images: " + str(jsonResponse))
-                    image_keys = jsonResponse['image_keys']
-                    images = jsonResponse['images'] #encoded image content
-                    #send the key to the new node
-                    put_response = requests.get(backend_base_url + str(base_port + (partition % new_node_num)) + '/put_partition_images', data={'images':images, 'image_keys':image_keys})
-                    put_jsonResponse = put_response.json()
-
-            if put_jsonResponse['success'] == 'true':
-                current_node_num = new_node_num
             
-            logging.info("current_node_num : " + str(current_node_num))
         
         # for node in range(current_node_num):
         #     try:
@@ -329,7 +328,6 @@ def config_auto_scaler():
         #             res = requests.get(backend_base_url + str(node + base_port) + '/stop_scheduler')
         #         except requests.exceptions.ConnectionError:
         #             print("Can't connect to port " + str(node + base_port))
->>>>>>> 9dee058 (modify statistics page: 1. change statistics count from memcache to frontend(also change scheduler). 2. change cloud watch, along with average rate. 3. manager app fetch statistics from cloudwatch and store them to database, with scheduler. 4. fetch data from database and show it on the page)
 
 
 @manageapp.route('/resize_auto', methods=['GET', 'POST'])
