@@ -48,23 +48,25 @@ Here replace "yourpassword" with your own password of MySQL.
     pip3 install -r requirements.txt
     ```
 
-4. Start Flask app
+4. Start Flask app. Now simply use one shell script.
 
-Now simply use one shell script.
     ```console
     sh run.sh
     ```
-    if Ubuntu, use
+
+    if system is Ubuntu, use
     ```console
     ./run.sh
     ```
-    The other way is to run each flask instance separately
-    
+
+    *The other way is to run each flask instance separately.
     ```console
     FLASK_APP=run.py
     ```
+
     ```console
     DB_HOST=localhost:hostnumber flask --debug run --port <portnumber>
     ```
+ 
     Frontend port number is 5000, DB is 3306, autoscaler is 5020, memcache 5001-5008 and manager app is 8001.
 
