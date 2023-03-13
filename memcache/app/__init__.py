@@ -2,7 +2,6 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from collections import OrderedDict
 import random
-from flask_apscheduler import APScheduler
 import boto3
 import sys
 sys.path.append('..')
@@ -14,15 +13,7 @@ global memcache
 
 memapp = Flask(__name__)
 
-# Scheduler
 
-class Config(object):
-    SCHEDULER_API_ENABLED = True
-
-
-memapp.config.from_object(Config())
-scheduler = APScheduler()
-scheduler.init_app(memapp)
 
 port_flag = 0
 CUR_PORT = -1
@@ -59,7 +50,6 @@ class CacheDict(OrderedDict):
     def __setitem__(self, __key, __value) -> None:
         # if self.cur_size + int(len(__value) / 1024) > self.cache_size:
         #     return
-        
         if self.cache_size == 0:
             return
         super().__setitem__(__key, __value)
@@ -107,6 +97,7 @@ class CacheDict(OrderedDict):
 memcache = CacheDict()
 
 
+
 db_user = database_credential.db_user
 db_password = database_credential.db_password
 db_host = database_credential.db_host
@@ -122,14 +113,13 @@ class MemcacheConfig(db.Model):
 
 class MemcacheStatistics(db.Model):
     id = db.Column(db.Integer, primary_key = True)
-    time = db.Column(db.Time)
+    time = db.Column(db.String(50))
+    node_num = db.Column(db.Integer)
     num_of_items = db.Column(db.Integer)
-    total_size_of_items = db.Column(db.Integer)
+    total_size_of_items = db.Column(db.Float)
     number_of_requests_served = db.Column(db.Integer)
     miss_rate = db.Column(db.Float)
     hit_rate = db.Column(db.Float)
-    mem_node = db.Column(db.Integer)
-
 
 with memapp.app_context():
 
@@ -155,7 +145,8 @@ with memapp.app_context():
     #         db.session.delete(item)
     
     init_memstatistics = MemcacheStatistics(
-        mem_node = CUR_NODE,
+        time = '',
+        node_num = 0,
         num_of_items = 0,
         total_size_of_items = 0,
         number_of_requests_served = 0,

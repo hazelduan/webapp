@@ -37,11 +37,11 @@ cd manager_app
 python run.py &
 PID2=$!
 echo ${PID2}
-cd react-manage-app
-yarn start &
-PID3=$!
-echo ${PID3}
-cd ..
+# cd react-manage-app
+# yarn start &
+# PID3=$!
+# echo ${PID3}
+# cd ..
 cd ..
 cd memcache
 
