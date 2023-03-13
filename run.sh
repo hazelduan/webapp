@@ -11,14 +11,14 @@ function trap_ctrlc ()
 
     # kill -9 ${PID3}
 
-    kill -9 ${PID5001}
-    kill -9 ${PID5002}
-    kill -9 ${PID5003}
-    kill -9 ${PID5004}
-    kill -9 ${PID5005}
-    kill -9 ${PID5006}
-    kill -9 ${PID5007}
-    kill -9 ${PID5008}
+    #kill -9 ${PID5001}
+    #kill -9 ${PID5002}
+    #kill -9 ${PID5003}
+    #kill -9 ${PID5004}
+    #kill -9 ${PID5005}
+    #kill -9 ${PID5006}
+    #kill -9 ${PID5007}
+    #kill -9 ${PID5008}
     # exit shell script with error code 2
     # if omitted, shell script will continue execution
     exit 2

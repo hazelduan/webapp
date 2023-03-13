@@ -51,7 +51,7 @@ def UpdateLocalIP():
     global local_public_ip
     local_public_ip = request.form['local_public_ip']
     logging.info("Manage App Public ip " + local_public_ip)
-
+    return {'success' : 'true'}
 
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
 def MemcacheOption():

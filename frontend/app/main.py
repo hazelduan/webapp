@@ -51,11 +51,12 @@ def main():
             requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
                  data={'local_public_ip' : local_public_ip})
             # send to auto scaler
-            requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
-                 data={'local_public_ip' : local_public_ip})
+            #requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
+            #     data={'local_public_ip' : local_public_ip})
 
 
-
+    
+    scheduler.start()
     return render_template("index.html", active_node=active_node)
 
 def get_active_node():
@@ -542,9 +543,12 @@ def Statistics():
     #     statistics.data['miss_rate'] = statistics.data['miss_num'] / statistics.data['request_num']
     statistics.add('node_num', get_active_node())
     for node in range(statistics.get('node_num')):
+        logging.info("send str :" + str(public_ips[node] + ':' + str(base_port)))
         try:
-            res = requests.get(backend_base_url + str(node + base_port) + '/get_item_statistics')
+            res = requests.get(public_ips[node] + ':' + str(base_port) + '/get_item_statistics')
+            logging.info("res : " + str(res))
             jsonResponse = res.json()
+            logging.info("jsonres : " + str(jsonResponse))
             statistics.add('item_num', int(jsonResponse['number_of_items']))
             statistics.add('total_size', float(jsonResponse['total_size']))
         except requests.exceptions.ConnectionError:
