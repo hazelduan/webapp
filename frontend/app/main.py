@@ -39,24 +39,24 @@ local_public_ip = ''
 @webapp.route('/')
 def main():
     global local_public_ip
-    instances = ec2.instances.all()
-    for instance in instances:
-        if instance.id in EC2_NODE_ID:
-            public_ips.append('http://' + str(instance.public_ip_address))
-            requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
-                 data={'public_ips' : 'http://' + str(instance.public_ip_address) })
-        elif instance.id in EC2_CONTROL_ID:
-            local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
-            # send to manager app
-            requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
-                 data={'local_public_ip' : local_public_ip})
-            # send to auto scaler
-            #requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
-            #     data={'local_public_ip' : local_public_ip})
-
-
-    
-    scheduler.start()
+    global EC2_ALL_START
+    if EC2_ALL_START == 0:
+        instances = ec2.instances.all()
+        for instance in instances:
+            if instance.id in EC2_NODE_ID:
+                public_ips.append('http://' + str(instance.public_ip_address))
+                requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
+                    data={'public_ips' : 'http://' + str(instance.public_ip_address) })
+            elif instance.id in EC2_CONTROL_ID:
+                local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
+                # send to manager app
+                requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
+                    data={'local_public_ip' : local_public_ip})
+                # send to auto scaler
+                requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
+                    data={'local_public_ip' : local_public_ip})
+        
+        EC2_ALL_START = 1
     return render_template("index.html", active_node=active_node)
 
 def get_active_node():
@@ -543,12 +543,12 @@ def Statistics():
     #     statistics.data['miss_rate'] = statistics.data['miss_num'] / statistics.data['request_num']
     statistics.add('node_num', get_active_node())
     for node in range(statistics.get('node_num')):
-        logging.info("send str :" + str(public_ips[node] + ':' + str(base_port)))
+        #logging.info("send str :" + str(public_ips[node] + ':' + str(base_port)))
         try:
             res = requests.get(public_ips[node] + ':' + str(base_port) + '/get_item_statistics')
-            logging.info("res : " + str(res))
+            #logging.info("res : " + str(res))
             jsonResponse = res.json()
-            logging.info("jsonres : " + str(jsonResponse))
+            #logging.info("jsonres : " + str(jsonResponse))
             statistics.add('item_num', int(jsonResponse['number_of_items']))
             statistics.add('total_size', float(jsonResponse['total_size']))
         except requests.exceptions.ConnectionError:

@@ -211,8 +211,9 @@ def resize_memcachePool(size):
             else:
                 print("Keys in this partition need to change node.")
                 # get the key from the old node and delete the key from old node
+                logging.info("resize memcache " + public_ips[(partition % current_node_num)] + str(base_port))
                 response = requests.get(
-                    public_ips[(partition % current_node_num)] + str(base_port) + '/get_partition_images',
+                        public_ips[(partition % current_node_num)] + ':' +  str(base_port) + '/get_partition_images',
                     data={'partition': str(partition)})
                 print("response of get_partition_images: " + str(response))
                 jsonResponse = response.json()
@@ -221,12 +222,12 @@ def resize_memcachePool(size):
                 images = jsonResponse['images']  # encoded image content
                 # send the key to the new node
                 put_response = requests.get(
-                    public_ips[(partition % current_node_num)] + str(base_port) + '/put_partition_images',
+                        public_ips[(partition % current_node_num)] + ':' + str(base_port) + '/put_partition_images',
                     data={'images': images, 'image_keys': image_keys})
-                put_jsonResponse = put_response.json()
+                #put_jsonResponse = put_response.json()
 
-        if put_jsonResponse['success'] == 'true':
-            current_node_num = new_node_num
+        #if put_jsonResponse['success'] == 'true':
+        current_node_num = new_node_num
 
         logging.info("current_node_num : " + str(current_node_num))
 

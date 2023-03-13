@@ -28,13 +28,13 @@ trap "trap_ctrlc" 2
 
 cd frontend
 echo "before go through"
-python run.py &
+python3 run.py &
 PID1=$!
 echo ${PID1}
 echo "manage app"
 cd ..
 cd manager_app
-python run.py &
+python3 run.py &
 PID2=$!
 echo ${PID2}
 # cd react-manage-app
@@ -43,7 +43,8 @@ echo ${PID2}
 # echo ${PID3}
 # cd ..
 cd ..
-cd memcache
+cd auto_scaler
+python3 run.py &
 
 #for i in {5001..5008}
 #do
