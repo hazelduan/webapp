@@ -211,23 +211,21 @@ def resize_memcachePool(size):
             else:
                 print("Keys in this partition need to change node.")
                 # get the key from the old node and delete the key from old node
-                logging.info("resize memcache " + public_ips[(partition % current_node_num)] + str(base_port))
                 response = requests.get(
                         public_ips[(partition % current_node_num)] + ':' +  str(base_port) + '/get_partition_images',
                     data={'partition': str(partition)})
-                print("response of get_partition_images: " + str(response))
                 jsonResponse = response.json()
-                print("response of get_partition_images: " + str(jsonResponse))
                 image_keys = jsonResponse['image_keys']
+                print('keys fetch from memcache to manager app', image_keys)
                 images = jsonResponse['images']  # encoded image content
                 # send the key to the new node
                 put_response = requests.get(
                         public_ips[(partition % current_node_num)] + ':' + str(base_port) + '/put_partition_images',
-                    data={'images': images, 'image_keys': image_keys})
-                #put_jsonResponse = put_response.json()
+                    json={'images': images, 'image_keys': image_keys})
+                put_jsonResponse = put_response.json()
 
-        #if put_jsonResponse['success'] == 'true':
-        current_node_num = new_node_num
+        if put_jsonResponse['success'] == 'true':
+            current_node_num = new_node_num
 
         logging.info("current_node_num : " + str(current_node_num))
 
@@ -251,7 +249,7 @@ def ResizeMemcacheManual():
     if request.method == 'POST':
         requests.post(local_public_ip + str(manager_port) + url_for('set_mode'), data={'mode': 'manual'})
         new_node_num = request.form['new_node_number']
-        print(local_public_ip + str(manager_port) + url_for('resize'))
+        # print(local_public_ip + str(manager_port) + url_for('resize'))
         requests.post(local_public_ip + str(manager_port) + url_for('resize'),
                       data={'new_node_number': str(new_node_num)})
         logging.info("current_node_num : " + str(current_node_num))

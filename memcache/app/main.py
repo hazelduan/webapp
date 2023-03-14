@@ -91,23 +91,28 @@ def get_partition_images():
                 images.append(image_content)
         for image_key in list(image_keys):
             memcache.pop(image_key)  # delete images in this partition from memcache
-
-    return {'image_keys': image_keys, 'images': images}
+    data = {'image_keys': image_keys, 'images': images}
+    response = memapp.response_class(
+        response=json.dumps(data),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
 
 
 @memapp.route('/put_partition_images', methods=['GET'])
 def put_partition_images():
     i = 0
-    images = request.form.get('images')  # encoded image content
-    image_keys = request.form.get('image_keys')
-    logging.info("memcache image:" + str(images))
-    logging.info("memcache image_keys :" + str(image_keys))
-    if image_keys == None:
-        return {'success': 'true'}
-    for key in image_keys:
-        image_content = images[i]
-        memcache[key] = image_content
-        i += 1
+    images = request.json['images']  # encoded image content
+    image_keys = request.json['image_keys']
+    print('images received', image_keys)
+    if image_keys:
+        for key in image_keys: 
+            image_content = images[i]
+            memcache[key] = image_content
+            i += 1
+    print('images put into memcache', memcache.keys())
+    return {'success': 'true'}
     
 
 
