@@ -58,6 +58,7 @@ def UpdateLocalIP():
     if MODE == 'CLOUD':
         local_public_ip = request.form['local_public_ip']
         logging.info("Manage App Public ip " + local_public_ip)
+    
     return {'success' : 'true'}
 
 
@@ -229,7 +230,7 @@ def resize_memcachePool(size):
                 # send the key to the new node
                 put_response = requests.get(
                     public_ips[(partition % current_node_num)] + str(memcache_port[partition % current_node_num]) + '/put_partition_images',
-                    data={'images': images, 'image_keys': image_keys})
+                    json={'images': images, 'image_keys': image_keys})
                 put_jsonResponse = put_response.json()
 
         if put_jsonResponse['success'] == 'true':

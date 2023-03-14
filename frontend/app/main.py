@@ -38,7 +38,35 @@ local_public_ip = ''
 
 @webapp.route('/')
 def main():
+    # ip initialization
+    global has_started
+    if has_started == 0:
+        if MODE == 'CLOUD':
+                instances = ec2.instances.all()
+                for instance in instances:
+                    if instance.id in EC2_NODE_ID:
+                        public_ips.append('http://' + str(instance.public_ip_address) + ':')
+                        requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
+                            data={'public_ips' : 'http://' + str(instance.public_ip_address) + ':' })
+                    elif instance.id in EC2_CONTROL_ID:
+                        local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
+                        # send to manager app
+                        requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
+                            data={'local_public_ip' : local_public_ip})
+                        # send to auto scaler
+                        requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
+                            data={'local_public_ip' : local_public_ip})
+                
+
+        elif MODE == 'LOCAL':
+            local_public_ip = backend_base_url
+            for _ in range(8):
+                public_ips.append(backend_base_url)   
+
+        has_started = 1
     return render_template("index.html", active_node=active_node)
+    
+
 
 def get_active_node():
     active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
@@ -536,26 +564,4 @@ def store_statistics_in_cloudwatch(data):
 
 
 
- # ip initialization
-if MODE == 'CLOUD':
-    if EC2_ALL_START == 0:
-        instances = ec2.instances.all()
-        for instance in instances:
-            if instance.id in EC2_NODE_ID:
-                public_ips.append('http://' + str(instance.public_ip_address) + ':')
-                requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
-                    data={'public_ips' : 'http://' + str(instance.public_ip_address) + ':' })
-            elif instance.id in EC2_CONTROL_ID:
-                local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
-                # send to manager app
-                requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
-                    data={'local_public_ip' : local_public_ip})
-                # send to auto scaler
-                requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
-                    data={'local_public_ip' : local_public_ip})
-        EC2_ALL_START = 1
 
-elif MODE == 'LOCAL':
-    local_public_ip = backend_base_url
-    for _ in range(8):
-        public_ips.append(backend_base_url)   
