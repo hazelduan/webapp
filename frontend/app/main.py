@@ -65,10 +65,16 @@ def main():
             for _ in range(8):
                 public_ips.append(backend_base_url)   
 
+        scheduler.start()
         has_started = 1
     return render_template("index.html", active_node=active_node)
     
+@webapp.route('/update_active_node', methods=['POST'])
+def UpdateActiveNode():
+    global active_node
+    active_node = int(request.form['active_node'])
 
+    return {'success' : 'true'}
 
 def get_active_node():
     active_node_response = requests.get(local_public_ip + str(manager_port) + '/get')
@@ -563,6 +569,8 @@ def Statistics():
 def store_statistics_in_cloudwatch(data):
     logging.info(str(data))
     cw_api.putMultipleMetric(data)
+
+
 
 
 

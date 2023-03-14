@@ -36,6 +36,9 @@ python run.py &
 PID2=$!
 echo ${PID2}
 cd ..
+cd auto_scaler
+python run.py &
+cd ..
 cd memcache
 
 
