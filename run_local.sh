@@ -39,28 +39,28 @@ cd ..
 cd memcache
 
 
-flask --debug run --port 5001 &
+flask run --port 5001 &
 PID5001=$!
 echo ${PID5001}
-flask --debug run --port 5002 &
+flask run --port 5002 &
 PID5002=$!
 echo ${PID5002}
-flask --debug run --port 5003 &
+flask run --port 5003 &
 PID5003=$!
 echo ${PID5003}
-flask --debug run --port 5004 &
+flask run --port 5004 &
 PID5004=$!
 echo ${PID5004}
-flask --debug run --port 5005 &
+flask run --port 5005 &
 PID5005=$!
 echo ${PID5005}
-flask --debug run --port 5006 &
+flask run --port 5006 &
 PID5006=$!
 echo ${PID5006}
-flask --debug run --port 5007 &
+flask run --port 5007 &
 PID5007=$!
 echo ${PID5007}
-flask --debug run --port 5008 &
+flask run --port 5008 &
 PID5008=$!
 echo ${PID5008}
 wait

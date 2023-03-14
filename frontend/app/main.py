@@ -40,6 +40,8 @@ local_public_ip = ''
 def main():
     # ip initialization
     global has_started
+    global public_ips
+    global local_public_ip
     if has_started == 0:
         if MODE == 'CLOUD':
                 instances = ec2.instances.all()
