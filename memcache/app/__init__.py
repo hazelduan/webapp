@@ -114,8 +114,8 @@ class MemcacheConfig(db.Model):
 class MemcacheStatistics(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     time = db.Column(db.String(50))
-    node_num = db.Column(db.Integer)
-    num_of_items = db.Column(db.Integer)
+    node_num = db.Column(db.Float)
+    num_of_items = db.Column(db.Float)
     total_size_of_items = db.Column(db.Float)
     number_of_requests_served = db.Column(db.Integer)
     miss_rate = db.Column(db.Float)

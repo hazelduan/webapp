@@ -5,7 +5,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import backend_base_url, auto_scaler_port, manager_port, EC2_NODE_ID, EC2_CONTROL_ID, MODE, memcache_port
+from configuration import backend_base_url, auto_scaler_port, manager_port, EC2_NODE_ID, EC2_CONTROL_ID, MODE, memcache_port, frontend_port
 
 from flask import render_template, url_for, request, flash, redirect
 from api import manageapp, scheduler
@@ -167,7 +167,7 @@ def cw_statistics():
 #             'item_num': 0,
 #             'total_size': 0.0,
 #         }
-    time_slice = 30 # s
+    time_slice = 60 # s
     node_res = cw_api.getMetricData(time_slice, 'node_num', 'Average')
     request_res = cw_api.getMetricData(time_slice, 'request_num', 'Sum')
     lookup_res = cw_api.getMetricData(time_slice, 'lookup_num', 'Sum')
@@ -183,15 +183,17 @@ def cw_statistics():
         
         return 0
     
-    node_num = int(get_metric_res(node_res, 'Average'))
+    node_num = get_metric_res(node_res, 'Average')
     request_num = get_metric_res(request_res, 'Sum')
-    item_num = int(get_metric_res(item_res, 'Average'))
+    item_num = get_metric_res(item_res, 'Average')
     total_size = get_metric_res(size_res, 'Average')
     cur_time = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
 
     miss_rate = cw_api.getAverageMetric(time_slice,'miss_num', 'lookup_num')
     hit_rate = cw_api.getAverageMetric(time_slice, 'hit_num', 'lookup_num')
 
+    # send the miss rate to auto-scaler
+    res = requests.post(local_public_ip + str(auto_scaler_port) + '/autocheck_miss', data={'miss_rate' : miss_rate})
     mydb = mysql.connector.connect(
         host=database_credential.db_host,
         user=database_credential.db_user,
@@ -235,6 +237,8 @@ def resize_memcachePool(size):
 
         if put_jsonResponse['success'] == 'true':
             current_node_num = new_node_num
+            requests.post(local_public_ip + str(frontend_port) + '/update_active_node', data={'active_node': current_node_num})
+            requests.post(local_public_ip + str(auto_scaler_port) + '/update_active_node', data={'active_node': current_node_num})
 
         logging.info("current_node_num : " + str(current_node_num))
 

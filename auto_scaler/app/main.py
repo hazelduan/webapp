@@ -2,10 +2,16 @@ from app import autoscaler, scheduler, cw_api
 from flask import request
 import requests
 import sys
+import logging
 
 sys.path.append('..')
 sys.path.append('..')
 from configuration import backend_base_url, manager_port, MODE
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
 
 is_on = False
 active_node = 8
@@ -18,9 +24,10 @@ local_public_ip = ''
 if MODE == 'LOCAL':
     local_public_ip = backend_base_url
 
+@autoscaler.route('/autocheck_miss', methods=['POST'])
 def checkMissRate():
     if not is_on:
-        return
+        return {'success' : 'true'}
     global active_node
     global max_miss_thres
     global min_miss_thres
@@ -29,21 +36,28 @@ def checkMissRate():
 
     # get average miss rate from CloudWatch
 
-    average_miss_rate = cw_api.getAverageMetric(seconds=60, metric_label1='miss_num', metric_label2='lookup_num')
-
+    #average_miss_rate = cw_api.getAverageMetric(seconds=60, metric_label1='miss_num', metric_label2='lookup_num')
+    logging.info("before active node" + str(active_node))
+    logging.info(request.form['miss_rate'])
+    average_miss_rate = float(request.form['miss_rate'])
+    
+    logging.info("average_miss_rate" + str(average_miss_rate))
+    logging.info("max_miss_thres:" + str(max_miss_thres))
     if average_miss_rate > max_miss_thres:      # expand the nodes
 
-        new_active_node = int(active_node * expand_ratio)
-        if new_active_node > 8:
-            new_active_node = 8
+        active_node = int(active_node * expand_ratio)
+        if active_node > 8:
+            active_node = 8
 
     elif average_miss_rate < min_miss_thres:  # shrink the nodes
-        new_active_node = int(active_node * shrink_ratio)
-        if new_active_node < 1:  # no operation, should not shutdown node 1
-            return
-    active_node = new_active_node
-    print('current active node : ', active_node)
+        active_node = int(active_node * shrink_ratio)
+        if active_node < 1:  # no operation, should not shutdown node 1
+            active_node = 1
+
+    logging.info('after active node : '+  str(active_node))
     response = requests.post(local_public_ip + str(manager_port) + '/resize', data={'new_node_number': active_node})
+
+    return {'success' : 'true'}
 
 
 @autoscaler.route('/update_local_ip', methods=['POST'])
@@ -51,6 +65,14 @@ def UpdateLocalIP():
     global local_public_ip
     if MODE == 'CLOUD':
         local_public_ip = request.form['local_public_ip']
+
+
+@autoscaler.route('/update_active_node', methods=['POST'])
+def UpdateActiveNode():
+    global active_node
+    active_node = int(request.form['active_node'])
+
+    return {'success' : 'true'}
 
 @autoscaler.route('/update_params', methods=['POST'])
 def UpdateParams():
@@ -85,5 +107,5 @@ def turn_off_auto_scaler():
     return {'success' : 'true'}
 
 # scheduler to store statistics in database
-scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')
-scheduler.start()
+# scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')
+# scheduler.start()
