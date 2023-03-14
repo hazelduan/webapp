@@ -75,7 +75,6 @@ def UpdateParams():
 def turn_on_auto_scaler():
     global is_on
     is_on = True
-
     return {'success' : 'true'}
 
 
@@ -83,9 +82,7 @@ def turn_on_auto_scaler():
 def turn_off_auto_scaler():
     global is_on
     is_on = False
-
     return {'success' : 'true'}
-
 
 # scheduler to store statistics in database
 scheduler.add_job(func=checkMissRate, trigger='interval', seconds=60, id='job1')

@@ -25,7 +25,7 @@ class Config(object):
 webapp.config.from_object(Config())
 scheduler = APScheduler()
 scheduler.init_app(webapp)
-scheduler.start()
+#scheduler.start()
 
 db_user = database_credential.db_user
 db_password = database_credential.db_password

@@ -38,9 +38,6 @@ local_public_ip = ''
 
 @webapp.route('/')
 def main():
-    
-
-
     return render_template("index.html", active_node=active_node)
 
 def get_active_node():

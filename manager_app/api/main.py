@@ -222,10 +222,9 @@ def resize_memcachePool(size):
                 response = requests.get(
                     public_ips[(partition % current_node_num)] + str(memcache_port[partition % current_node_num]) + '/get_partition_images',
                     data={'partition': str(partition)})
-                print("response of get_partition_images: " + str(response))
                 jsonResponse = response.json()
-                print("response of get_partition_images: " + str(jsonResponse))
                 image_keys = jsonResponse['image_keys']
+                print('keys fetch from memcache to manager app', image_keys)
                 images = jsonResponse['images']  # encoded image content
                 # send the key to the new node
                 put_response = requests.get(
@@ -258,7 +257,7 @@ def ResizeMemcacheManual():
     if request.method == 'POST':
         requests.post(local_public_ip + str(manager_port) + url_for('set_mode'), data={'mode': 'manual'})
         new_node_num = request.form['new_node_number']
-        print(local_public_ip + str(manager_port) + url_for('resize'))
+        # print(local_public_ip + str(manager_port) + url_for('resize'))
         requests.post(local_public_ip + str(manager_port) + url_for('resize'),
                       data={'new_node_number': str(new_node_num)})
         logging.info("current_node_num : " + str(current_node_num))
