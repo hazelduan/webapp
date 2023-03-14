@@ -249,7 +249,7 @@ def ResizeMemcacheManual():
     if request.method == 'POST':
         requests.post(local_public_ip + str(manager_port) + url_for('set_mode'), data={'mode': 'manual'})
         new_node_num = request.form['new_node_number']
-        print(local_public_ip + str(manager_port) + url_for('resize'))
+        # print(local_public_ip + str(manager_port) + url_for('resize'))
         requests.post(local_public_ip + str(manager_port) + url_for('resize'),
                       data={'new_node_number': str(new_node_num)})
         logging.info("current_node_num : " + str(current_node_num))
