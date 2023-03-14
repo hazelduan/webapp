@@ -5,7 +5,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import base_port, auto_scaler_port, manager_port, EC2_NODE_ID, EC2_CONTROL_ID
+from configuration import backend_base_url, auto_scaler_port, manager_port, EC2_NODE_ID, EC2_CONTROL_ID, MODE, memcache_port
 
 from flask import render_template, url_for, request, flash, redirect
 from api import manageapp, scheduler
@@ -31,6 +31,11 @@ capacity = 1  # By default the capacity is 1.
 public_ips = []
 local_public_ip = ''
 
+if MODE == 'LOCAL':
+    local_public_ip = backend_base_url
+    for _ in range(8):
+        public_ips.append(backend_base_url)
+
 @manageapp.route('/')
 def main():
     return render_template("index.html")
@@ -39,18 +44,21 @@ def main():
 @manageapp.route('/update_public_ips', methods=['POST'])
 def UpdatePublicIP():
     global public_ips
-    logging.info('receve pubic ips : ' + str(request.form['public_ips']))
-    if len(public_ips) < 8:
-        public_ips.append(request.form['public_ips'])
-    logging.info("in backend, public ips " + str(public_ips))
+    if MODE == 'CLOUD':
+        logging.info('receve pubic ips : ' + str(request.form['public_ips']))
+        if len(public_ips) < 8:
+            public_ips.append(request.form['public_ips'])
+        logging.info("in backend, public ips " + str(public_ips))
     return {'success' : 'true'}
 
 
 @manageapp.route('/update_local_ip', methods=['POST'])
 def UpdateLocalIP():
     global local_public_ip
-    local_public_ip = request.form['local_public_ip']
-    logging.info("Manage App Public ip " + local_public_ip)
+    if MODE == 'CLOUD':
+        local_public_ip = request.form['local_public_ip']
+        logging.info("Manage App Public ip " + local_public_ip)
+    return {'success' : 'true'}
 
 
 @manageapp.route('/memcache_option', methods=['GET', 'POST'])
@@ -66,7 +74,7 @@ def MemcacheOption():
         if request.form['policy'] in ['Random', 'LRU']:
             policy = request.form['policy']
         for i in range(current_node_num):  # all nodes should have the same configuration.
-            response = requests.get(public_ips[i] + ':' + str(base_port) + "/memcache_option", 
+            response = requests.get(public_ips[i] + str(memcache_port[i]) + "/memcache_option", 
                                     data={'capacity': capacity, 'policy':policy, 'method':'post'})
             jsonResponse = response.json()
             all_nodes_value_list.extend(jsonResponse['memcache'])
@@ -74,7 +82,7 @@ def MemcacheOption():
 
     else:
         for i in range(current_node_num):
-            response = requests.get(public_ips[i] + ':' + str(base_port) + "/memcache_option", 
+            response = requests.get(public_ips[i] + str(memcache_port[i]) + "/memcache_option", 
                                     data={'capacity': '1', 'policy': '1', 'method':'get'})
             jsonResponse = response.json()
             all_nodes_value_list.extend(jsonResponse['memcache'])
@@ -93,7 +101,7 @@ def MemcacheOption():
 @manageapp.route('/cache_clear', methods=['POST'])
 def CacheClear():
     for i in range(current_node_num):
-        response = requests.get(public_ips[i] + ':' + str(base_port) + '/cache_clear')
+        response = requests.get(public_ips[i] + str(memcache_port[i]) + '/cache_clear')
     #print("Response of cache clear:" + response)
     jsonResponse = response.json()
     return {'success': jsonResponse['success']}
@@ -212,7 +220,7 @@ def resize_memcachePool(size):
                 print("Keys in this partition need to change node.")
                 # get the key from the old node and delete the key from old node
                 response = requests.get(
-                    public_ips[(partition % current_node_num)] + str(base_port) + '/get_partition_images',
+                    public_ips[(partition % current_node_num)] + str(memcache_port[partition % current_node_num]) + '/get_partition_images',
                     data={'partition': str(partition)})
                 print("response of get_partition_images: " + str(response))
                 jsonResponse = response.json()
@@ -221,7 +229,7 @@ def resize_memcachePool(size):
                 images = jsonResponse['images']  # encoded image content
                 # send the key to the new node
                 put_response = requests.get(
-                    public_ips[(partition % current_node_num)] + str(base_port) + '/put_partition_images',
+                    public_ips[(partition % current_node_num)] + str(memcache_port[partition % current_node_num]) + '/put_partition_images',
                     data={'images': images, 'image_keys': image_keys})
                 put_jsonResponse = put_response.json()
 
@@ -314,7 +322,7 @@ def get():
 def DeleteAllData():
     # delete all data in memcache
     for i in range(current_node_num):
-        response_memcache = requests.get(public_ips[i] + ':' + str(base_port) + '/cache_clear')
+        response_memcache = requests.get(public_ips[i] + str(memcache_port[i]) + '/cache_clear')
     jsonResponse = response_memcache.json()
     print(jsonResponse['success'])
     if jsonResponse['success'] == 'true':

@@ -100,8 +100,6 @@ def put_partition_images():
     i = 0
     images = request.form.get('images')  # encoded image content
     image_keys = request.form.get('image_keys')
-    logging.info("memcache image:" + str(images))
-    logging.info("memcache image_keys :" + str(image_keys))
     if image_keys == None:
         return {'success': 'true'}
     for key in image_keys:
@@ -109,6 +107,7 @@ def put_partition_images():
         memcache[key] = image_content
         i += 1
     
+    return {'success' : 'true'}
 
 
 @memapp.route('/memcache_option', methods=['GET', 'POST'])

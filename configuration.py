@@ -5,9 +5,10 @@ base_path = cur_folder_path
 file_system_path = os.path.join(base_path, 'file_storage')
 backend_base_url = 'http://127.0.0.1:'
 frontend_port = 5000
-base_port = 5001  #memcache base port 
+memcache_port = [5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008]  #memcache base port 
 auto_scaler_port = 5020
 manager_port = 8001
+MODE = 'LOCAL'  # CLOUD and LOCAL
 EC2_AMI = 'ami-080ff70d8f5b80ba5'
 EC2_NODE_ID = ['i-011344a69579f4aba',
                'i-028f59ff595181eea',

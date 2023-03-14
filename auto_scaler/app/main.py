@@ -5,7 +5,7 @@ import sys
 
 sys.path.append('..')
 sys.path.append('..')
-from configuration import backend_base_url, base_port, manager_port
+from configuration import backend_base_url, manager_port, MODE
 
 is_on = False
 active_node = 8
@@ -14,6 +14,9 @@ min_miss_thres = 0.2
 expand_ratio = 2
 shrink_ratio = 0.5
 local_public_ip = ''
+
+if MODE == 'LOCAL':
+    local_public_ip = backend_base_url
 
 def checkMissRate():
     if not is_on:
@@ -46,7 +49,8 @@ def checkMissRate():
 @autoscaler.route('/update_local_ip', methods=['POST'])
 def UpdateLocalIP():
     global local_public_ip
-    local_public_ip = request.form['local_public_ip']
+    if MODE == 'CLOUD':
+        local_public_ip = request.form['local_public_ip']
 
 @autoscaler.route('/update_params', methods=['POST'])
 def UpdateParams():
@@ -72,11 +76,15 @@ def turn_on_auto_scaler():
     global is_on
     is_on = True
 
+    return {'success' : 'true'}
+
 
 @autoscaler.route('/turn_off_auto_scaler', methods=['POST'])
 def turn_off_auto_scaler():
     global is_on
     is_on = False
+
+    return {'success' : 'true'}
 
 
 # scheduler to store statistics in database

@@ -5,7 +5,7 @@ import logging
 sys.path.append("..")
 sys.path.append("..")
 from database import database_credential
-from configuration import auto_scaler_port, backend_base_url, base_port, manager_port, EC2_AMI, EC2_NODE_ID, EC2_CONTROL_ID
+from configuration import auto_scaler_port, backend_base_url, memcache_port, manager_port, EC2_AMI, EC2_NODE_ID, EC2_CONTROL_ID, MODE
 
 from flask import render_template, url_for, request, flash, redirect
 from app import webapp, cw_api, statistics, scheduler
@@ -38,22 +38,7 @@ local_public_ip = ''
 
 @webapp.route('/')
 def main():
-    global local_public_ip
-    instances = ec2.instances.all()
-    for instance in instances:
-        if instance.id in EC2_NODE_ID:
-            public_ips.append('http://' + str(instance.public_ip_address))
-            requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
-                 data={'public_ips' : 'http://' + str(instance.public_ip_address) })
-        elif instance.id in EC2_CONTROL_ID:
-            local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
-            # send to manager app
-            requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
-                 data={'local_public_ip' : local_public_ip})
-            # send to auto scaler
-            requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
-                 data={'local_public_ip' : local_public_ip})
-
+    
 
 
     return render_template("index.html", active_node=active_node)
@@ -111,8 +96,8 @@ def UploadImage():
     # requests.get(url_for_manage_app, ..)
     active_node = get_active_node()
     print('the active node is:' + str(active_node))
-    mem_port = mem_partition % active_node + base_port
-    response = requests.post(public_ips[mem_partition % active_node] + ':' + str(base_port) + "/put", data={'image_key': image_key, 'image_content': image_content})
+    response = requests.post(public_ips[mem_partition % active_node] + str(memcache_port[mem_partition % active_node]) + "/put", 
+                             data={'image_key': image_key, 'image_content': image_content})
     print('the response is:', response)
     jsonResponse = response.json()
 
@@ -189,9 +174,8 @@ def ImageLookupForTest(key_value):
     # requests.get(url_for_manage_app, ..)
     active_node = get_active_node()
     print('the active node is:' + str(active_node))
-    mem_port = mem_partition % active_node + base_port
 
-    response = requests.get(public_ips[mem_partition % active_node] + ':' + str(base_port) + "/get", data={'image_key': image_key})
+    response = requests.get(public_ips[mem_partition % active_node] + str(memcache_port[mem_partition % active_node]) + "/get", data={'image_key': image_key})
     jsonResponse = response.json()
     image_content = jsonResponse['image_content']
     statistics.add('lookup_num', 1)
@@ -201,7 +185,7 @@ def ImageLookupForTest(key_value):
     else:
         statistics.add('miss_num', 1)
     if jsonResponse['cache_hit'] == 'true':
-        print("Look up through memcache port" + str(mem_port))
+        print("Look up through memcache port" + str(memcache_port[mem_partition % active_node]))
         resp = {
             "success": "true",
             "key": image_key,
@@ -214,7 +198,8 @@ def ImageLookupForTest(key_value):
             obj = s3.get_object(Bucket=BUCKET_NAME, Key=db_image.image_path)
             image_content = base64.b64encode(obj['Body'].read()).decode()
             # put the key into memcache
-            requests.post(public_ips[mem_partition % active_node] + ':' + str(base_port) + '/put', data={'image_key': image_key, 'image_content': image_content})
+            requests.post(public_ips[mem_partition % active_node] + str(memcache_port[mem_partition % active_node]) + '/put', 
+                          data={'image_key': image_key, 'image_content': image_content})
             statistics.add('request_num', 1)
             resp = {
                 "success": "true",
@@ -298,7 +283,7 @@ def DeleteAllKeys():
     ## Delete from all the memcache        
     active_node = get_active_node()
     for i in range(active_node):
-        response = requests.get(public_ips[i] + ':' + str(base_port) + '/cache_clear')
+        response = requests.get(public_ips[i] + str(memcache_port[i]) + '/cache_clear')
 
     jsonResponse = response.json()
     return {'success': jsonResponse['success']}
@@ -308,7 +293,7 @@ def DeleteAllKeys():
 def CacheClear():
     active_node = get_active_node()
     for i in range(active_node):
-        response = requests.get(public_ips[i] + ':' + str(base_port) + '/cache_clear')
+        response = requests.get(public_ips[i] + str(memcache_port[i])+ '/cache_clear')
     jsonResponse = response.json()
     return {'success': jsonResponse['success']}
 
@@ -319,9 +304,9 @@ def StopScheduler():
     active_node = get_active_node()
     for mem_port in range(active_node):
         try:
-            res = requests.get(public_ips[mem_port] + ':' + str(base_port) + '/stop_scheduler')
+            res = requests.get(public_ips[mem_port] + str(memcache_port[mem_port]) + '/stop_scheduler')
         except requests.exceptions.ConnectionError:
-            print(f'port {mem_port + base_port} offline')
+            print(f'port {memcache_port[mem_port]} offline')
 
 
 
@@ -390,48 +375,48 @@ def DeleteEC2():
     return 'delete success!'
 
 
-def HealthCheck():
-    logging.info("Running HealthCheck...")
-    global EC2_ALL_START
-    global active_node
-    global has_started
-    global public_ips
-    global local_public_ip
-    instances = ec2.instances.all()
+# def HealthCheck():
+#     logging.info("Running HealthCheck...")
+#     global EC2_ALL_START
+#     global active_node
+#     global has_started
+#     global public_ips
+#     global local_public_ip
+#     instances = ec2.instances.all()
 
-    while 1:
-        running_cnt = 0
-        for instance in instances:
-            if instance.id in EC2_NODE_ID and instance.state['Name'] == 'running':
-                running_cnt += 1
-            elif instance.id in EC2_CONTROL_ID:
-                local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
+#     while 1:
+#         running_cnt = 0
+#         for instance in instances:
+#             if instance.id in EC2_NODE_ID and instance.state['Name'] == 'running':
+#                 running_cnt += 1
+#             elif instance.id in EC2_CONTROL_ID:
+#                 local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
         
-        active_node = running_cnt
-        if running_cnt == 8:
-            break
+#         active_node = running_cnt
+#         if running_cnt == 8:
+#             break
 
-        if has_started == 0:
-            has_started = 1
-            # StartEC2()
+#         if has_started == 0:
+#             has_started = 1
+#             # StartEC2()
 
 
-    EC2_ALL_START = 1
-    for instance in instances:
-        if instance.id in EC2_NODE_ID:
-            public_ips.append('http://' + str(instance.public_ip_address))
-            requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
-                 data={'public_ips' : 'http://' + str(instance.public_ip_address) })
+#     EC2_ALL_START = 1
+#     for instance in instances:
+#         if instance.id in EC2_NODE_ID:
+#             public_ips.append('http://' + str(instance.public_ip_address))
+#             requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
+#                  data={'public_ips' : 'http://' + str(instance.public_ip_address) })
         
             
             
-    logging.info('in frontend, public ips : ' + str(public_ips))
+#     logging.info('in frontend, public ips : ' + str(public_ips))
     
-    logging.info("HealthCheck Ended")
+#     logging.info("HealthCheck Ended")
 
-webapp.route('/show_len', methods=['GET'])
-def showlen():
-    return "len of public ip : {}".format(len(public_ips))
+# webapp.route('/show_len', methods=['GET'])
+# def showlen():
+#     return "len of public ip : {}".format(len(public_ips))
 
 
 # try:
@@ -501,24 +486,12 @@ def Get_num_Nodes():
 def get_rate():
     rate_type = request.args.get('rate')
     if rate_type == 'miss':
-        miss_num = cw_api.getMetricData(60, "miss_num", "Sum")['Datapoints'][0]['Sum']
-        request_num = cw_api.getMetricData(60, "request_num", "Sum")['Datapoints'][0]['Sum']
-        if request_num == 0:
-            rate_value = 0  # avoid division by zero
-        else:
-            print('miss_num: ', miss_num)
-            print('request_num: ', request_num)
-            rate_value = float(miss_num) / request_num
+        miss_rate = cw_api.getAverageMetric(60, 'miss_num', 'lookup_num')
+        rate_value = miss_rate
+
     elif rate_type == 'hit':
-        rate = 'hit'
-        hit_num = cw_api.getMetricData(60, "hit_num", "Sum")['Datapoints'][0]['Sum']
-        request_num = cw_api.getMetricData(60, "request_num", "Sum")['Datapoints'][0]['Sum']
-        if request_num == 0:
-            rate_value = 0  # avoid division by zero
-        else:
-            print('hit_num: ', hit_num)
-            print('request_num: ', request_num)
-            rate_value = float(hit_num) / request_num
+        hit_rate = cw_api.getAverageMetric(60, 'hit_num', 'lookup_num')
+        rate_value = hit_rate
     else:
         print('Invalid rate type')
     print(rate_value)
@@ -530,6 +503,12 @@ def get_rate():
     )
     return response
 
+@webapp.route('/api/getInsRate', methods=['POST'])
+def get_ins_rate():
+    miss_rate = float(statistics.data['miss_num']) / statistics.data['lookup_num']
+    hit_rate = float(statistics.data['hit_num']) / statistics.data['lookup_num']
+
+    return {'miss': miss_rate, 'hit' : hit_rate}
 
 @scheduler.task('interval', id='job_1', seconds=5)
 @webapp.route("/pool_statistics", methods=['GET'])
@@ -542,13 +521,10 @@ def Statistics():
     #     statistics.data['miss_rate'] = statistics.data['miss_num'] / statistics.data['request_num']
     statistics.add('node_num', get_active_node())
     for node in range(statistics.get('node_num')):
-        try:
-            res = requests.get(backend_base_url + str(node + base_port) + '/get_item_statistics')
-            jsonResponse = res.json()
-            statistics.add('item_num', int(jsonResponse['number_of_items']))
-            statistics.add('total_size', float(jsonResponse['total_size']))
-        except requests.exceptions.ConnectionError:
-            print(f'port {node + base_port} offline')
+        res = requests.get(public_ips[node] + str(memcache_port[node]) + '/get_item_statistics')
+        jsonResponse = res.json()
+        statistics.add('item_num', int(jsonResponse['number_of_items']))
+        statistics.add('total_size', float(jsonResponse['total_size']))
     # provide current time to mysql time format
     # cur_time= datetime.datetime.now().strftime('%H:%M:%S.%f')[:-5]
 
@@ -560,3 +536,29 @@ def Statistics():
 def store_statistics_in_cloudwatch(data):
     logging.info(str(data))
     cw_api.putMultipleMetric(data)
+
+
+
+ # ip initialization
+if MODE == 'CLOUD':
+    if EC2_ALL_START == 0:
+        instances = ec2.instances.all()
+        for instance in instances:
+            if instance.id in EC2_NODE_ID:
+                public_ips.append('http://' + str(instance.public_ip_address) + ':')
+                requests.post(local_public_ip + str(manager_port) + '/update_public_ips', 
+                    data={'public_ips' : 'http://' + str(instance.public_ip_address) + ':' })
+            elif instance.id in EC2_CONTROL_ID:
+                local_public_ip = 'http://' + str(instance.public_ip_address) + ':'
+                # send to manager app
+                requests.post(local_public_ip + str(manager_port) + '/update_local_ip',
+                    data={'local_public_ip' : local_public_ip})
+                # send to auto scaler
+                requests.post(local_public_ip + str(auto_scaler_port) + '/update_local_ip',
+                    data={'local_public_ip' : local_public_ip})
+        EC2_ALL_START = 1
+
+elif MODE == 'LOCAL':
+    local_public_ip = backend_base_url
+    for _ in range(8):
+        public_ips.append(backend_base_url)   
