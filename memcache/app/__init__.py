@@ -91,6 +91,8 @@ class CacheDict(OrderedDict):
             super().__delitem__(old_key)
 
     def pop(self, __key):
+        old_value = super().__getitem__(__key)
+        self.cur_size -= int(len(old_value) / 1024)
         super().__delitem__(__key)
 
 
